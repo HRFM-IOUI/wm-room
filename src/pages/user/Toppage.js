@@ -1,5 +1,3 @@
-// src/pages/user/Toppage.js
-
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { db } from "../../firebase";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
@@ -9,7 +7,7 @@ import SidebarRight from "../../components/common/SidebarRight";
 import MenuPanel from "../../components/common/MenuPanel";
 import FooterTabMobile from "../../components/common/FooterTabMobile";
 import TabSwitcher from "../../components/common/TabSwitcher";
-import VideoCard from "../../components/video/VideoCard"; // ✅ 修正済み
+import VideoCard from "../../components/video/VideoCard";
 import { useMediaQuery } from "react-responsive";
 
 const Toppage = () => {
@@ -50,11 +48,8 @@ const Toppage = () => {
 
   const filteredPosts = useMemo(() => {
     return posts.filter((post) => {
-      const matchTag =
-        !selectedTag ||
-        (Array.isArray(post.tags) && post.tags.includes(selectedTag));
-      const matchCategory =
-        !selectedCategory || post.category === selectedCategory;
+      const matchTag = !selectedTag || (Array.isArray(post.tags) && post.tags.includes(selectedTag));
+      const matchCategory = !selectedCategory || post.category === selectedCategory;
       const isPublic = post.isPublic !== false;
       return matchTag && matchCategory && isPublic;
     });
@@ -92,30 +87,33 @@ const Toppage = () => {
   }, [visiblePosts]);
 
   const renderTabContent = () => {
-    switch (activeTab) {
-      case "videos":
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {filteredPosts.slice(0, visiblePosts.length).map((post, index) => (
-              <div
-                key={post.id}
-                ref={index === visiblePosts.length - 1 ? lastPostRef : undefined}
-              >
-                <VideoCard video={post} />
-              </div>
-            ))}
-          </div>
-        );
-      case "goods":
-      case "gacha":
-        return (
-          <div className="text-center text-gray-500 py-12">
-            このコンテンツは現在準備中です。
-          </div>
-        );
-      default:
-        return null;
+    console.log("posts:", posts);
+    console.log("filteredPosts:", filteredPosts);
+
+    if (activeTab === "videos") {
+      if (filteredPosts.length === 0) {
+        return <p className="text-center text-gray-500 py-12">表示する動画がありません。</p>;
+      }
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {filteredPosts.slice(0, visiblePosts.length).map((post, index) => (
+            <div
+              key={post.id}
+              ref={index === visiblePosts.length - 1 ? lastPostRef : undefined}
+            >
+              <VideoCard video={post} />
+            </div>
+          ))}
+        </div>
+      );
+    } else if (activeTab === "goods" || activeTab === "gacha") {
+      return (
+        <div className="text-center text-gray-500 py-12">
+          このコンテンツは現在準備中です。
+        </div>
+      );
     }
+    return null;
   };
 
   return (
@@ -150,6 +148,7 @@ const Toppage = () => {
 };
 
 export default Toppage;
+
 
 
 
