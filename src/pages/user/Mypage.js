@@ -1,8 +1,6 @@
-// src/pages/user/Mypage.js
 import React, { useEffect, useState } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../../firebase';
-import { getGachaHistory } from '../../utils/gachaUtils';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { getUserVipStatus } from '../../utils/vipUtils';
 import { useNavigate } from 'react-router-dom';
@@ -10,7 +8,6 @@ import { useNavigate } from 'react-router-dom';
 const Mypage = () => {
   const [user] = useAuthState(auth);
   const navigate = useNavigate();
-  const [history, setHistory] = useState([]);
   const [isOwner, setIsOwner] = useState(false);
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -23,13 +20,8 @@ const Mypage = () => {
 
   useEffect(() => {
     if (!user) return;
-    // ガチャ履歴取得
     const fetchData = async () => {
       try {
-        const results = await getGachaHistory(user.uid);
-        setHistory(results);
-
-        // ユーザードキュメントを確認（owner判定）
         const docRef = doc(db, 'users', user.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists() && docSnap.data().isOwner) {
@@ -43,7 +35,6 @@ const Mypage = () => {
   }, [user]);
 
   useEffect(() => {
-    // 注文履歴を取得
     const fetchOrders = async () => {
       if (!user) return;
       const q = query(collection(db, 'orders'), where('userId', '==', user.uid));
@@ -66,7 +57,6 @@ const Mypage = () => {
   }, [user]);
 
   useEffect(() => {
-    // VIPステータス取得
     const fetchVip = async () => {
       if (!user) return;
       const vs = await getUserVipStatus(user.uid);
@@ -101,7 +91,6 @@ const Mypage = () => {
             )}
           </div>
 
-          {/* ✅ 管理者ボタン復元 */}
           {isOwner && (
             <button
               onClick={() => navigate('/dashboard')}
@@ -112,7 +101,7 @@ const Mypage = () => {
           )}
         </div>
 
-        {/* VIPステータス表示 */}
+        {/* VIPステータス */}
         <div className="bg-gray-50 p-4 rounded shadow space-y-2">
           <h2 className="text-lg font-semibold mb-2">VIPステータス</h2>
           <p className="text-sm">
@@ -149,42 +138,6 @@ const Mypage = () => {
                       <div key={i} className="flex justify-between">
                         <span>{item.title || '商品名不明'} × {item.quantity || 1}</span>
                         <span>¥{item.price}</span>
-                      </div>
-                    ))}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* ガチャ履歴 */}
-        <div className="bg-gray-50 p-4 rounded shadow space-y-3">
-          <h2 className="text-lg font-semibold mb-2">ガチャ履歴</h2>
-          {history.length === 0 ? (
-            <p className="text-gray-500 text-sm">履歴がありません。</p>
-          ) : (
-            <ul className="space-y-4 text-sm text-gray-700">
-              {history.map((entry, index) => (
-                <li key={index} className="border p-3 rounded bg-white">
-                  <p className="text-xs text-gray-500 mb-2">
-                    {entry.timestamp?.toDate().toLocaleString()}
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {entry.results.map((item, i) => (
-                      <div key={i} className="text-center">
-                        {item.image ? (
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="w-16 h-16 object-contain mx-auto"
-                          />
-                        ) : (
-                          <div className="w-16 h-16 bg-gray-200 flex items-center justify-center mx-auto text-sm text-gray-600 rounded">
-                            No Img
-                          </div>
-                        )}
-                        <p className="text-xs mt-1">{item.name}</p>
                       </div>
                     ))}
                   </div>
