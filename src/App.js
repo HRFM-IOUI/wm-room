@@ -10,7 +10,8 @@ import Login from './pages/auth/Login';
 import PrivacyPolicy from './pages/system/PrivacyPolicy';
 import TermsOfService from './pages/system/TermsOfService';
 import LegalNotice from './pages/system/LegalNotice';
-import Toppage from './pages/user/Toppage'; // ✅ 正しい配置と一致
+import Toppage from './pages/user/Toppage';
+import Mypage from './pages/user/Mypage'; // ✅ 追加
 import UploaderMultipart from './components/video/UploaderMultipart';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
         <Route path="/subscribe" element={<SubscribeStart />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/mypage" element={<Mypage />} /> {/* ✅ 追加 */}
         <Route path="/system/PrivacyPolicy" element={<PrivacyPolicy />} />
         <Route path="/system/TermsOfService" element={<TermsOfService />} />
         <Route path="/system/LegalNotice" element={<LegalNotice />} />
@@ -32,6 +34,7 @@ function App() {
 }
 
 export default App;
+
 
 
 
