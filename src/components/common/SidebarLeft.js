@@ -2,7 +2,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { User, Gamepad2, LogOut } from "lucide-react"; // ← ✅ Home, Search を削除
-import { auth } from "../../firebase";
+import { auth } from "../../../firebase";
 
 const SidebarLeft = () => {
   const location = useLocation();
