@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const PART_SIZE = 10 * 1024 * 1024; // 10MB パート分割単位
 
-const UploaderMultipart = () => {
+const Uploader = () => {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('');
 
@@ -78,6 +78,6 @@ const UploaderMultipart = () => {
   );
 };
 
-export default UploaderMultipart;
+export default Uploader;
 
 
