@@ -9,11 +9,13 @@ import Login from './pages/auth/Login';
 import PrivacyPolicy from './pages/system/PrivacyPolicy';
 import TermsOfService from './pages/system/TermsOfService';
 import LegalNotice from './pages/system/LegalNotice';
+
 import Toppage from './pages/user/Toppage';
 import Mypage from './pages/user/Mypage';
-import UploaderMultipart from './components/video/UploaderMultipart';
+import Dashboard from './pages/user/Dashboard'; // ✅ 移動後のDashboard
+import Uploader from './components/video/Uploader';
 
-import ProtectedRoute from './components/ProtectedRoute'; // 🔐 追加
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -31,13 +33,15 @@ function App() {
         {/* 認証保護ページ */}
         <Route path="/" element={<ProtectedRoute element={<Toppage />} />} />
         <Route path="/mypage" element={<ProtectedRoute element={<Mypage />} />} />
-        <Route path="/upload-test" element={<ProtectedRoute element={<UploaderMultipart />} />} />
+        <Route path="/dashboard" element={<ProtectedRoute element={<Dashboard />} />} />
+        <Route path="/upload-test" element={<ProtectedRoute element={<Uploader />} />} />
       </Routes>
     </Router>
   );
 }
 
 export default App;
+
 
 
 
