@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
-const PART_SIZE = 10 * 1024 * 1024; // 10MB パート分割単位
+const API_BASE = "https://s3-upload.ik39-10vevic.workers.dev"; // ← 本番用Cloudflare WorkerのURL
+const PART_SIZE = 10 * 1024 * 1024; // 10MB
 
 const Uploader = () => {
   const [progress, setProgress] = useState(0);
@@ -14,15 +15,14 @@ const Uploader = () => {
     setProgress(0);
 
     try {
-      // STEP 1: /initiate にリクエストして uploadId を取得
-      const res1 = await fetch('http://127.0.0.1:8787/initiate', {
+      // STEP 1: マルチパート開始
+      const res1 = await fetch(`${API_BASE}/initiate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename: file.name, type: file.type }),
       });
 
       const { uploadId, key } = await res1.json();
-
       const partCount = Math.ceil(file.size / PART_SIZE);
       const parts = [];
 
@@ -31,8 +31,8 @@ const Uploader = () => {
         const end = Math.min(start + PART_SIZE, file.size);
         const blobPart = file.slice(start, end);
 
-        // STEP 2: 各パート用の署名付きURLを取得
-        const res2 = await fetch('http://127.0.0.1:8787/part', {
+        // STEP 2: 各パートの署名付きURL取得
+        const res2 = await fetch(`${API_BASE}/part`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key, uploadId, partNumber }),
@@ -40,7 +40,7 @@ const Uploader = () => {
 
         const { signedUrl } = await res2.json();
 
-        // STEP 3: パートをPUTでアップロード
+        // STEP 3: 各パートアップロード
         const putRes = await fetch(signedUrl, {
           method: 'PUT',
           body: blobPart,
@@ -48,12 +48,11 @@ const Uploader = () => {
 
         const eTag = putRes.headers.get('ETag');
         parts.push({ ETag: eTag.replaceAll('"', ''), PartNumber: partNumber });
-
         setProgress(Math.round((partNumber / partCount) * 100));
       }
 
-      // STEP 4: 完了通知
-      const res3 = await fetch('http://127.0.0.1:8787/complete', {
+      // STEP 4: アップロード完了通知
+      const res3 = await fetch(`${API_BASE}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, uploadId, parts }),
@@ -79,5 +78,7 @@ const Uploader = () => {
 };
 
 export default Uploader;
+
+
 
 
