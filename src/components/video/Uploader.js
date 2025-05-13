@@ -1,4 +1,4 @@
-// ✅ Uploader.js（ログ追加版）
+// src/components/video/Uploader.js
 import React, { useState } from 'react';
 
 const API_BASE = "https://s3-upload.ik39-10vevic.workers.dev";
@@ -16,10 +16,18 @@ const Uploader = () => {
     setProgress(0);
 
     try {
+      // ファイル名とタイプをログ出力
+      console.log("🔥 ファイル名:", file.name);
+      console.log("🔥 ファイルタイプ:", file.type);
+
+      // STEP 1: マルチパート開始
       const res1 = await fetch(`${API_BASE}/initiate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: file.name, type: file.type }),
+        body: JSON.stringify({
+          filename: file.name,
+          type: file.type || 'application/octet-stream' // ← フォールバック
+        }),
       });
 
       const { uploadId, key } = await res1.json();
@@ -56,6 +64,7 @@ const Uploader = () => {
         setProgress(Math.round((partNumber / partCount) * 100));
       }
 
+      // STEP 4: アップロード完了通知
       const res3 = await fetch(`${API_BASE}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -82,6 +91,7 @@ const Uploader = () => {
 };
 
 export default Uploader;
+
 
 
 
