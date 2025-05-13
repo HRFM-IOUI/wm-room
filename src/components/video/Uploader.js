@@ -1,21 +1,33 @@
+// src/components/video/Uploader.js
 import React, { useState } from 'react';
 
-const API_BASE = "https://s3-upload.ik39-10vevic.workers.dev"; // ← 本番用Cloudflare WorkerのURL
+const API_BASE = "https://s3-upload.ik39-10vevic.workers.dev";
 const PART_SIZE = 10 * 1024 * 1024; // 10MB
 
-const Uploader = () => {
+const Uploader = ({ onComplete }) => {
+  const [file, setFile] = useState(null);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('');
+  const [uploading, setUploading] = useState(false);
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleFileSelect = (e) => {
+    const selected = e.target.files[0];
+    setFile(selected);
+    setProgress(0);
+    setStatus('');
+  };
 
+  const handleUpload = async () => {
+    if (!file) {
+      alert("ファイルを選択してください");
+      return;
+    }
+
+    setUploading(true);
     setStatus('🔄 アップロード開始...');
     setProgress(0);
 
     try {
-      // STEP 1: マルチパート開始
       const res1 = await fetch(`${API_BASE}/initiate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -31,7 +43,6 @@ const Uploader = () => {
         const end = Math.min(start + PART_SIZE, file.size);
         const blobPart = file.slice(start, end);
 
-        // STEP 2: 各パートの署名付きURL取得
         const res2 = await fetch(`${API_BASE}/part`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -40,7 +51,6 @@ const Uploader = () => {
 
         const { signedUrl } = await res2.json();
 
-        // STEP 3: 各パートアップロード
         const putRes = await fetch(signedUrl, {
           method: 'PUT',
           body: blobPart,
@@ -48,10 +58,10 @@ const Uploader = () => {
 
         const eTag = putRes.headers.get('ETag');
         parts.push({ ETag: eTag.replaceAll('"', ''), PartNumber: partNumber });
+
         setProgress(Math.round((partNumber / partCount) * 100));
       }
 
-      // STEP 4: アップロード完了通知
       const res3 = await fetch(`${API_BASE}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -59,25 +69,38 @@ const Uploader = () => {
       });
 
       const result = await res3.json();
+      const videoUrl = `https://${process.env.REACT_APP_CLOUDFRONT_DOMAIN}/${key}`;
       console.log('✅ Upload completed:', result);
+
       setStatus('✅ アップロード完了！');
+      if (onComplete) onComplete(videoUrl);
     } catch (err) {
       console.error('Upload error:', err);
       setStatus('❌ アップロード失敗');
+    } finally {
+      setUploading(false);
     }
   };
 
   return (
-    <div className="p-4 border rounded shadow">
-      <label className="block mb-2 font-semibold">マルチパートアップローダー</label>
-      <input type="file" onChange={handleFileChange} />
-      <div className="mt-2">進捗: {progress}%</div>
+    <div className="p-4 border rounded shadow bg-white space-y-3">
+      <label className="block font-semibold">動画ファイル選択</label>
+      <input type="file" onChange={handleFileSelect} />
+      <button
+        onClick={handleUpload}
+        disabled={!file || uploading}
+        className="px-4 py-2 bg-pink-500 text-white rounded hover:bg-pink-600 disabled:opacity-50"
+      >
+        {uploading ? "アップロード中..." : "アップロード"}
+      </button>
+      <div className="text-sm text-gray-600">進捗: {progress}%</div>
       <div className="text-sm text-gray-600">{status}</div>
     </div>
   );
 };
 
 export default Uploader;
+
 
 
 

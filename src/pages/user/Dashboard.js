@@ -1,4 +1,4 @@
-// src/pages/dashboard/Dashboard.js
+// src/pages/user/Dashboard.js
 import React, { useEffect, useState } from 'react';
 import {
   collection,
@@ -7,6 +7,7 @@ import {
   getDocs,
   deleteDoc,
   updateDoc,
+  addDoc,
   doc,
 } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
@@ -30,12 +31,31 @@ const Dashboard = () => {
     setVideos(videoList);
   };
 
+  const handleUploadComplete = async (videoUrl) => {
+    const user = auth.currentUser;
+    if (!user || !videoUrl) return;
+
+    const fileName = videoUrl.split('/').pop();
+
+    try {
+      await addDoc(collection(db, 'videos'), {
+        userId: user.uid,
+        title: fileName || 'アップロード動画',
+        videoUrl,
+        isPublic: false,
+        createdAt: new Date(),
+      });
+      fetchVideos(); // リスト更新
+    } catch (err) {
+      console.error('Firestore保存失敗:', err);
+      alert('Firestoreへの保存に失敗しました');
+    }
+  };
+
   const handleDelete = async (video) => {
     if (!window.confirm('本当に削除しますか？')) return;
 
     try {
-      // Bunny削除が不要ならこの行をスキップ可能
-      // await deleteVideoFromBunny(video.guid);
       await deleteDoc(doc(db, 'videos', video.id));
       setVideos((prev) => prev.filter((v) => v.id !== video.id));
     } catch (err) {
@@ -79,7 +99,7 @@ const Dashboard = () => {
         onChange={(e) => setSearchTerm(e.target.value)}
       />
 
-      <Uploader />
+      <Uploader onComplete={handleUploadComplete} />
 
       <div className="grid gap-4">
         {filteredVideos.length === 0 ? (
@@ -117,3 +137,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
