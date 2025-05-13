@@ -1,8 +1,7 @@
-// src/components/video/Uploader.js
 import React, { useState } from 'react';
 
 const API_BASE = "https://s3-upload.ik39-10vevic.workers.dev";
-const PART_SIZE = 10 * 1024 * 1024; // 10MB
+const PART_SIZE = 10 * 1024 * 1024;
 
 const Uploader = () => {
   const [progress, setProgress] = useState(0);
@@ -16,18 +15,10 @@ const Uploader = () => {
     setProgress(0);
 
     try {
-      // ファイル名とタイプをログ出力
-      console.log("🔥 ファイル名:", file.name);
-      console.log("🔥 ファイルタイプ:", file.type);
-
-      // STEP 1: マルチパート開始
       const res1 = await fetch(`${API_BASE}/initiate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: file.name,
-          type: file.type || 'application/octet-stream' // ← フォールバック
-        }),
+        body: JSON.stringify({ fileName: file.name, fileType: file.type }),
       });
 
       const { uploadId, key } = await res1.json();
@@ -39,18 +30,13 @@ const Uploader = () => {
         const end = Math.min(start + PART_SIZE, file.size);
         const blobPart = file.slice(start, end);
 
-        console.log('🔍 リクエスト:', { key, uploadId, partNumber });
-
         const res2 = await fetch(`${API_BASE}/part`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key, uploadId, partNumber }),
         });
 
-        const resJson = await res2.json();
-        console.log('✅ /part レスポンス:', resJson);
-
-        const { signedUrl } = resJson;
+        const { signedUrl } = await res2.json();
         if (!signedUrl) throw new Error('signedUrlが取得できません');
 
         const putRes = await fetch(signedUrl, {
@@ -64,7 +50,6 @@ const Uploader = () => {
         setProgress(Math.round((partNumber / partCount) * 100));
       }
 
-      // STEP 4: アップロード完了通知
       const res3 = await fetch(`${API_BASE}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -91,6 +76,7 @@ const Uploader = () => {
 };
 
 export default Uploader;
+
 
 
 
