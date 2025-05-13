@@ -1,3 +1,4 @@
+// src/App.js
 import React from 'react';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
@@ -12,7 +13,7 @@ import LegalNotice from './pages/system/LegalNotice';
 
 import Toppage from './pages/user/Toppage';
 import Mypage from './pages/user/Mypage';
-import Dashboard from './pages/user/Dashboard'; // ✅ 移動後のDashboard
+import Dashboard from './pages/user/Dashboard';
 import Uploader from './components/video/Uploader';
 
 import ProtectedRoute from './components/ProtectedRoute';
@@ -32,6 +33,7 @@ function App() {
 
         {/* 認証保護ページ */}
         <Route path="/" element={<ProtectedRoute element={<Toppage />} />} />
+        <Route path="/toppage" element={<ProtectedRoute element={<Toppage />} />} />
         <Route path="/mypage" element={<ProtectedRoute element={<Mypage />} />} />
         <Route path="/dashboard" element={<ProtectedRoute element={<Dashboard />} />} />
         <Route path="/upload-test" element={<ProtectedRoute element={<Uploader />} />} />
