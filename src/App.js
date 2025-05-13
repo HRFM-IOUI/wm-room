@@ -1,4 +1,3 @@
-// src/App.js
 import React from 'react';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
@@ -15,6 +14,7 @@ import Toppage from './pages/user/Toppage';
 import Mypage from './pages/user/Mypage';
 import Dashboard from './pages/user/Dashboard';
 import Uploader from './components/video/Uploader';
+import VideoDetail from './pages/user/VideoDetail'; // ✅ 追加
 
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -37,12 +37,14 @@ function App() {
         <Route path="/mypage" element={<ProtectedRoute element={<Mypage />} />} />
         <Route path="/dashboard" element={<ProtectedRoute element={<Dashboard />} />} />
         <Route path="/upload-test" element={<ProtectedRoute element={<Uploader />} />} />
+        <Route path="/video/:id" element={<ProtectedRoute element={<VideoDetail />} />} /> {/* ✅ 追加 */}
       </Routes>
     </Router>
   );
 }
 
 export default App;
+
 
 
 
