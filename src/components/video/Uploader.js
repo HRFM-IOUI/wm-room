@@ -15,50 +15,65 @@ const Uploader = () => {
     setProgress(0);
 
     try {
-      // ステップ1: アップロード初期化
-      const res1 = await fetch(`${API_BASE}/initiate`, {
+      // ステップ1: /initiate にファイル情報を送信
+      const initiateRes = await fetch(`${API_BASE}/initiate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName: file.name, fileType: file.type }),
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+        }),
       });
-      const { uploadId, key } = await res1.json();
+
+      const { uploadId, key } = await initiateRes.json();
+
+      if (!uploadId || !key) {
+        throw new Error('uploadId または key が取得できません');
+      }
+
       const partCount = Math.ceil(file.size / PART_SIZE);
       const parts = [];
 
-      // ステップ2: 各パートを取得し順番にアップロード
       for (let partNumber = 1; partNumber <= partCount; partNumber++) {
         const start = (partNumber - 1) * PART_SIZE;
         const end = Math.min(start + PART_SIZE, file.size);
         const blobPart = file.slice(start, end);
 
-        const res2 = await fetch(`${API_BASE}/part`, {
+        console.log('[デバッグ] /part 送信:', { key, uploadId, partNumber });
+
+        const partRes = await fetch(`${API_BASE}/part`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key, uploadId, partNumber }),
+          body: JSON.stringify({
+            key,
+            uploadId,
+            partNumber,
+          }),
         });
 
-        const { signedUrl } = await res2.json();
+        const { signedUrl } = await partRes.json();
+
         if (!signedUrl) throw new Error('signedUrlが取得できません');
 
-        const putRes = await fetch(signedUrl, {
+        const uploadRes = await fetch(signedUrl, {
           method: 'PUT',
           body: blobPart,
         });
 
-        const eTag = putRes.headers.get('ETag');
+        const eTag = uploadRes.headers.get('ETag');
         parts.push({ ETag: eTag?.replaceAll('"', ''), PartNumber: partNumber });
 
         setProgress(Math.round((partNumber / partCount) * 100));
       }
 
-      // ステップ3: 完了通知
-      const res3 = await fetch(`${API_BASE}/complete`, {
+      // ステップ3: /complete を呼び出しアップロード完了を通知
+      const completeRes = await fetch(`${API_BASE}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, uploadId, parts }),
       });
 
-      const result = await res3.json();
+      const result = await completeRes.json();
       console.log('✅ Upload completed:', result);
       setStatus('✅ アップロード完了！');
     } catch (err) {
@@ -69,8 +84,16 @@ const Uploader = () => {
 
   return (
     <div className="p-4 border rounded shadow">
-      <label className="block mb-2 font-semibold">マルチパートアップローダー</label>
-      <input type="file" onChange={handleFileChange} />
+      <label htmlFor="fileUpload" className="block mb-2 font-semibold">
+        マルチパートアップローダー
+      </label>
+      <input
+        id="fileUpload"
+        type="file"
+        onChange={handleFileChange}
+        title="動画ファイルを選択してください"
+        placeholder="ファイルを選択"
+      />
       <div className="mt-2">進捗: {progress}%</div>
       <div className="text-sm text-gray-600">{status}</div>
     </div>
@@ -78,6 +101,7 @@ const Uploader = () => {
 };
 
 export default Uploader;
+
 
 
 
