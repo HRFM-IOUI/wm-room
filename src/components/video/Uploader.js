@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
-const API_BASE = "https://s3-upload.ik39-10vevic.workers.dev";
+// ✅ 新しいデプロイ先に更新
+const API_BASE = "https://cf-worker-upload.ik39-10vevic.workers.dev";
 const PART_SIZE = 10 * 1024 * 1024; // 10MB
 
 const Uploader = () => {
@@ -101,6 +102,7 @@ const Uploader = () => {
 };
 
 export default Uploader;
+
 
 
 
