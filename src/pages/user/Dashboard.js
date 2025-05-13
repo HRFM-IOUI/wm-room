@@ -1,4 +1,3 @@
-// src/pages/user/Dashboard.js
 import React, { useEffect, useState } from 'react';
 import {
   collection,
@@ -7,7 +6,6 @@ import {
   getDocs,
   deleteDoc,
   updateDoc,
-  addDoc,
   doc,
 } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
@@ -29,27 +27,6 @@ const Dashboard = () => {
       ...docSnap.data(),
     }));
     setVideos(videoList);
-  };
-
-  const handleUploadComplete = async (videoUrl) => {
-    const user = auth.currentUser;
-    if (!user || !videoUrl) return;
-
-    const fileName = videoUrl.split('/').pop();
-
-    try {
-      await addDoc(collection(db, 'videos'), {
-        userId: user.uid,
-        title: fileName || 'アップロード動画',
-        videoUrl,
-        isPublic: false,
-        createdAt: new Date(),
-      });
-      fetchVideos(); // リスト更新
-    } catch (err) {
-      console.error('Firestore保存失敗:', err);
-      alert('Firestoreへの保存に失敗しました');
-    }
   };
 
   const handleDelete = async (video) => {
@@ -99,7 +76,7 @@ const Dashboard = () => {
         onChange={(e) => setSearchTerm(e.target.value)}
       />
 
-      <Uploader onComplete={handleUploadComplete} />
+      <Uploader /> {/* onComplete は不要 */}
 
       <div className="grid gap-4">
         {filteredVideos.length === 0 ? (
@@ -111,7 +88,7 @@ const Dashboard = () => {
               className="p-4 border rounded-xl shadow-sm bg-white space-y-2"
             >
               <p className="font-semibold">{video.title}</p>
-              <VideoPlayer videoUrl={video.videoUrl} />
+              <VideoPlayer video={video} />
               <div className="flex gap-4 mt-2">
                 <button
                   onClick={() => togglePublic(video)}
@@ -137,4 +114,6 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+
 
