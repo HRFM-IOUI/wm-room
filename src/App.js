@@ -14,7 +14,7 @@ import Toppage from './pages/user/Toppage';
 import Mypage from './pages/user/Mypage';
 import Dashboard from './pages/user/Dashboard';
 import Uploader from './components/video/Uploader';
-import VideoDetail from './pages/user/VideoDetail'; // ✅ 追加
+import VideoDetail from './pages/user/VideoDetail'; // ✅ 動画詳細ページ
 
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -22,7 +22,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* 公開ページ */}
+        {/* ✅ 公開ページ（ログイン不要） */}
         <Route path="/lounge" element={<Lounge />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
@@ -31,19 +31,20 @@ function App() {
         <Route path="/system/TermsOfService" element={<TermsOfService />} />
         <Route path="/system/LegalNotice" element={<LegalNotice />} />
 
-        {/* 認証保護ページ */}
+        {/* ✅ 認証が必要なページ（ProtectedRoute で囲む） */}
         <Route path="/" element={<ProtectedRoute element={<Toppage />} />} />
         <Route path="/toppage" element={<ProtectedRoute element={<Toppage />} />} />
         <Route path="/mypage" element={<ProtectedRoute element={<Mypage />} />} />
         <Route path="/dashboard" element={<ProtectedRoute element={<Dashboard />} />} />
         <Route path="/upload-test" element={<ProtectedRoute element={<Uploader />} />} />
-        <Route path="/video/:id" element={<ProtectedRoute element={<VideoDetail />} />} /> {/* ✅ 追加 */}
+        <Route path="/video/:id" element={<ProtectedRoute element={<VideoDetail />} />} /> {/* ✅ 動画詳細 */}
       </Routes>
     </Router>
   );
 }
 
 export default App;
+
 
 
 
