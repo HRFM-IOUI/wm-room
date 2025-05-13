@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
+import { registerUploadedVideo } from '../../utils/videoUtils';
 
-// ✅ 新しいデプロイ先に更新
 const API_BASE = "https://cf-worker-upload.ik39-10vevic.workers.dev";
 const PART_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -27,10 +27,7 @@ const Uploader = () => {
       });
 
       const { uploadId, key } = await initiateRes.json();
-
-      if (!uploadId || !key) {
-        throw new Error('uploadId または key が取得できません');
-      }
+      if (!uploadId || !key) throw new Error('uploadId または key が取得できません');
 
       const partCount = Math.ceil(file.size / PART_SIZE);
       const parts = [];
@@ -53,16 +50,15 @@ const Uploader = () => {
         });
 
         const { signedUrl } = await partRes.json();
-
         if (!signedUrl) throw new Error('signedUrlが取得できません');
 
-        const uploadRes = await fetch(signedUrl, {
+        await fetch(signedUrl, {
           method: 'PUT',
           body: blobPart,
         });
 
-        const eTag = uploadRes.headers.get('ETag');
-        parts.push({ ETag: eTag?.replaceAll('"', ''), PartNumber: partNumber });
+        const eTag = partRes.headers?.get?.('ETag'); // 念のため取得
+        parts.push({ ETag: eTag?.replaceAll('"', '') || '', PartNumber: partNumber });
 
         setProgress(Math.round((partNumber / partCount) * 100));
       }
@@ -77,6 +73,15 @@ const Uploader = () => {
       const result = await completeRes.json();
       console.log('✅ Upload completed:', result);
       setStatus('✅ アップロード完了！');
+
+      // ✅ Firestoreに登録
+      await registerUploadedVideo({
+        title: file.name,
+        key,
+        fileType: file.type,
+      });
+      console.log('📥 Firestore 登録完了');
+
     } catch (err) {
       console.error('❌ Upload error:', err);
       setStatus('❌ アップロード失敗');
@@ -102,6 +107,7 @@ const Uploader = () => {
 };
 
 export default Uploader;
+
 
 
 
