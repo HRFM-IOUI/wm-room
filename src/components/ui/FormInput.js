@@ -24,7 +24,7 @@ const FormInput = ({
         focus:outline-none focus:ring-2 focus:ring-theme-pink
         ${className}
       `}
-      {...props}
+      {...props}npm 
     />
   );
 };

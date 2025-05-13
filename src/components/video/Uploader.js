@@ -53,7 +53,8 @@ const Uploader = () => {
       const res3 = await fetch(`${API_BASE}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key, uploadId, parts }),
+        body: JSON.stringify({ fileName: file.name, fileType: file.type }),
+
       });
 
       const result = await res3.json();
