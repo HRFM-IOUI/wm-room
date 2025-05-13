@@ -4,29 +4,38 @@ import { getVideoPlaybackUrl } from '../../utils/videoUtils';
 
 const VideoPlayer = ({ video }) => {
   const videoRef = useRef(null);
-  const videoUrl = getVideoPlaybackUrl(video.key);
+  const videoUrl = video?.key ? getVideoPlaybackUrl(video.key) : null;
 
   useEffect(() => {
     if (!videoUrl || !videoRef.current) return;
-    const video = videoRef.current;
+
+    const videoElement = videoRef.current;
     let hls;
 
     if (Hls.isSupported() && videoUrl.endsWith('.m3u8')) {
       hls = new Hls();
       hls.loadSource(videoUrl);
-      hls.attachMedia(video);
+      hls.attachMedia(videoElement);
       hls.on(Hls.Events.ERROR, (event, data) => {
         console.error('HLS error', data);
       });
     } else {
-      video.src = videoUrl;
+      videoElement.src = videoUrl;
     }
 
     return () => {
       if (hls) hls.destroy();
-      else video.src = '';
+      else videoElement.src = '';
     };
   }, [videoUrl]);
+
+  if (!videoUrl) {
+    return (
+      <div className="text-center text-gray-500 text-sm py-4">
+        ⚠️ 再生する動画データが見つかりません
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -40,4 +49,5 @@ const VideoPlayer = ({ video }) => {
 };
 
 export default VideoPlayer;
+
 
