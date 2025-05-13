@@ -1,4 +1,3 @@
-// src/utils/videoUtils.js
 import { auth, db } from '../firebase';
 import {
   getDoc,
@@ -8,7 +7,12 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 
-// VIP判定
+// 再生URLを生成（CloudFrontドメインまたはS3バケットパス）
+export const getVideoPlaybackUrl = (key) => {
+  const CLOUDFRONT_DOMAIN = 'toafans-videos.s3.ap-northeast-1.amazonaws.com'; // 必要に応じて署名付きURL対応可
+  return `https://${CLOUDFRONT_DOMAIN}/${key}`;
+};
+
 export const isVipUser = async () => {
   const user = auth.currentUser;
   if (!user) return false;
@@ -17,7 +21,6 @@ export const isVipUser = async () => {
   return snap.exists() && snap.data().vip === true;
 };
 
-// 購入判定
 export const hasPurchasedVideo = async (videoId) => {
   const user = auth.currentUser;
   if (!user) return false;
@@ -26,7 +29,6 @@ export const hasPurchasedVideo = async (videoId) => {
   return snap.exists();
 };
 
-// ✅ アップロード完了後にFirestoreへ登録
 export const registerUploadedVideo = async ({ title, key, fileType }) => {
   const user = auth.currentUser;
   if (!user) throw new Error('ログインが必要です');

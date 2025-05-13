@@ -1,13 +1,31 @@
-// src/components/video/VideoPlayer.js
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
+import Hls from 'hls.js';
+import { getVideoPlaybackUrl } from '../../utils/videoUtils';
 
-const VideoPlayer = ({ videoUrl }) => {
+const VideoPlayer = ({ video }) => {
   const videoRef = useRef(null);
+  const videoUrl = getVideoPlaybackUrl(video.key);
 
   useEffect(() => {
-    if (videoRef.current && videoUrl) {
-      videoRef.current.src = videoUrl;
+    if (!videoUrl || !videoRef.current) return;
+    const video = videoRef.current;
+    let hls;
+
+    if (Hls.isSupported() && videoUrl.endsWith('.m3u8')) {
+      hls = new Hls();
+      hls.loadSource(videoUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        console.error('HLS error', data);
+      });
+    } else {
+      video.src = videoUrl;
     }
+
+    return () => {
+      if (hls) hls.destroy();
+      else video.src = '';
+    };
   }, [videoUrl]);
 
   return (
@@ -22,3 +40,4 @@ const VideoPlayer = ({ videoUrl }) => {
 };
 
 export default VideoPlayer;
+
