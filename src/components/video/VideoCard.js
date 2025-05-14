@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { getVideoPlaybackUrl, isVipUser, hasPurchasedVideo } from "../../utils/videoUtils";
+import {
+  getVideoPlaybackUrl,
+  isVipUser,
+  hasPurchasedVideo,
+} from "../../utils/videoUtils";
 
 const VideoCard = ({ video }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [canAccess, setCanAccess] = useState(false);
   const [badge, setBadge] = useState("確認中");
+  const videoRef = useRef(null);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -30,7 +35,6 @@ const VideoCard = ({ video }) => {
           setCanAccess(true);
           setBadge("視聴可能");
         } else {
-          setCanAccess(false);
           setBadge("VIP限定");
         }
       } else if (video.type === "dmode") {
@@ -38,7 +42,6 @@ const VideoCard = ({ video }) => {
           setCanAccess(true);
           setBadge("購入済");
         } else {
-          setCanAccess(false);
           setBadge("単品購入");
         }
       }
@@ -47,8 +50,17 @@ const VideoCard = ({ video }) => {
     checkAccess();
   }, [video]);
 
-  const validKey = video?.key && typeof video.key === 'string' && video.key.trim() !== '';
+  const validKey = video?.key && typeof video.key === "string" && video.key.trim() !== "";
   const videoUrl = canAccess && validKey ? getVideoPlaybackUrl(video.key) : null;
+
+  useEffect(() => {
+    if (!videoRef.current) return;
+    if (isHovered && videoUrl) {
+      videoRef.current.play().catch(() => {});
+    } else {
+      videoRef.current.pause();
+    }
+  }, [isHovered, videoUrl]);
 
   return (
     <div
@@ -57,11 +69,11 @@ const VideoCard = ({ video }) => {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="relative aspect-w-16 aspect-h-9">
-        {isHovered && videoUrl ? (
+        {videoUrl ? (
           <video
+            ref={videoRef}
             src={videoUrl}
             className="w-full h-full object-cover"
-            autoPlay
             loop
             muted
             playsInline
@@ -110,6 +122,8 @@ const VideoCard = ({ video }) => {
 };
 
 export default VideoCard;
+
+
 
 
 
