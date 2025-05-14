@@ -7,9 +7,10 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 
-// ✅ CloudFrontまたはS3パスから再生URLを生成
+// ✅ CloudFrontまたはS3パスから再生URLを生成（ログ追加）
 export const getVideoPlaybackUrl = (key) => {
   const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN;
+  console.log("✅ 再生URLドメイン確認:", CLOUDFRONT_DOMAIN); // ← ログ追加
   return `https://${CLOUDFRONT_DOMAIN}/${key}`;
 };
 
