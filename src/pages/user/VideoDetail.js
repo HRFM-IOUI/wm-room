@@ -3,8 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import VideoPlayer from '../../components/video/VideoPlayer';
-import { isVipUser, hasPurchasedVideo } from '../../utils/videoUtils';
 import DownloadButton from '../../components/video/DownloadButton';
+import { isVipUser, hasPurchasedVideo } from '../../utils/videoUtils';
 
 const VideoDetail = () => {
   const { id } = useParams();
@@ -12,7 +12,6 @@ const VideoDetail = () => {
   const [loading, setLoading] = useState(true);
   const [accessGranted, setAccessGranted] = useState(false);
   const [userStatus, setUserStatus] = useState({ isVip: false, hasPurchased: false });
-  const [checkingAccess, setCheckingAccess] = useState(false);
 
   useEffect(() => {
     const fetchVideo = async () => {
@@ -32,7 +31,6 @@ const VideoDetail = () => {
         if (!user) {
           setAccessGranted(data.type === 'sample');
         } else {
-          setCheckingAccess(true);
           const [vip, purchased] = await Promise.all([
             isVipUser(),
             hasPurchasedVideo(data.id),
@@ -50,7 +48,6 @@ const VideoDetail = () => {
         console.error('動画取得エラー:', err);
       } finally {
         setLoading(false);
-        setCheckingAccess(false);
       }
     };
 
@@ -117,6 +114,7 @@ const VideoDetail = () => {
 };
 
 export default VideoDetail;
+
 
 
 
