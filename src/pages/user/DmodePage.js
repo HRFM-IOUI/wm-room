@@ -1,3 +1,5 @@
+// src/pages/user/DmodePage.js
+
 import React, { useEffect, useRef, useState } from 'react';
 import { db } from '../../firebase';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
@@ -9,7 +11,6 @@ import SidebarRight from '../../components/common/SidebarRight';
 import MenuPanel from '../../components/common/MenuPanel';
 import FooterTabMobile from '../../components/common/FooterTabMobile';
 import TabSwitcher from '../../components/common/TabSwitcher';
-import DailyBonusBanner from '../../components/ui/DailyBonusBanner';
 import VideoCard from '../../components/video/VideoCard';
 import { getUserVipStatus } from '../../utils/vipUtils';
 import { useMediaQuery } from 'react-responsive';
@@ -100,7 +101,6 @@ const DmodePage = () => {
         </aside>
 
         <main className="flex-1 overflow-y-auto px-4 pb-20 pt-[64px] space-y-4">
-          <DailyBonusBanner />
           {vipStatus && (
             <div className="bg-pink-100 text-black p-4 rounded-xl shadow text-sm">
               🎖️ VIPランク: <strong>{vipStatus.rank}</strong> / ログイン連続: {vipStatus.streak}日 / ポイント: {vipStatus.points}pt
@@ -126,4 +126,5 @@ const DmodePage = () => {
 };
 
 export default DmodePage;
+
 

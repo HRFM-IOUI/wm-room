@@ -14,10 +14,11 @@ import LegalNotice from './pages/system/LegalNotice';
 import Toppage from './pages/user/Toppage';
 import Mypage from './pages/user/Mypage';
 import Dashboard from './pages/user/Dashboard';
+import DmodePage from './pages/user/DmodePage'; // ✅ 追加
 import Uploader from './components/video/Uploader';
 import VideoDetail from './pages/user/VideoDetail';
-import PurchasePage from './pages/user/PurchasePage'; // ✅ 追加
-import ThankYouPage from './pages/user/ThankYou';     // ✅ 追加
+import PurchasePage from './pages/user/PurchasePage';
+import ThankYouPage from './pages/user/ThankYou';
 
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -39,16 +40,18 @@ function App() {
         <Route path="/toppage" element={<ProtectedRoute element={<Toppage />} />} />
         <Route path="/mypage" element={<ProtectedRoute element={<Mypage />} />} />
         <Route path="/dashboard" element={<ProtectedRoute element={<Dashboard />} />} />
+        <Route path="/dmode" element={<ProtectedRoute element={<DmodePage />} />} /> {/* ✅ Dmode追加 */}
         <Route path="/upload-test" element={<ProtectedRoute element={<Uploader />} />} />
         <Route path="/video/:id" element={<ProtectedRoute element={<VideoDetail />} />} />
-        <Route path="/purchase/:id" element={<ProtectedRoute element={<PurchasePage />} />} /> {/* ✅ 単品購入 */}
-        <Route path="/thankyou" element={<ProtectedRoute element={<ThankYouPage />} />} />     {/* ✅ サンクスページ */}
+        <Route path="/purchase/:id" element={<ProtectedRoute element={<PurchasePage />} />} />
+        <Route path="/thankyou" element={<ProtectedRoute element={<ThankYouPage />} />} />
       </Routes>
     </Router>
   );
 }
 
 export default App;
+
 
 
 
