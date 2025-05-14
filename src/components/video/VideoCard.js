@@ -5,26 +5,26 @@ import { getVideoPlaybackUrl } from "../../utils/videoUtils";
 
 const VideoCard = ({ video }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [showPlayer, setShowPlayer] = useState(false);
   const videoRef = useRef(null);
   const videoUrl = getVideoPlaybackUrl(video.key);
 
+  const isHls = video.key?.endsWith(".m3u8");
+  const isStandard = video.key?.endsWith(".mp4") || video.key?.endsWith(".mov");
+
   useEffect(() => {
-    if (isHovered && videoUrl && Hls.isSupported() && videoRef.current) {
+    if (isHls && (isHovered || showPlayer) && videoUrl && Hls.isSupported() && videoRef.current) {
       const hls = new Hls();
       hls.loadSource(videoUrl);
       hls.attachMedia(videoRef.current);
       return () => hls.destroy();
     }
-  }, [isHovered, videoUrl]);
+  }, [isHovered, showPlayer, videoUrl, isHls]);
 
-  return (
-    <div
-      className="rounded overflow-hidden shadow bg-white transform transition-transform hover:scale-105 hover:shadow-lg"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div className="aspect-w-16 aspect-h-9 relative">
-        {isHovered && videoUrl ? (
+  const renderVideo = () => {
+    if ((isHovered || showPlayer) && videoUrl) {
+      if (isHls) {
+        return (
           <video
             ref={videoRef}
             className="w-full h-full object-cover"
@@ -34,13 +34,41 @@ const VideoCard = ({ video }) => {
             playsInline
             title={video.title}
           />
-        ) : (
-          <img
-            src="/thumbnail_placeholder.png"
-            alt={video.title}
+        );
+      } else if (isStandard) {
+        return (
+          <video
+            src={videoUrl}
             className="w-full h-full object-cover"
+            autoPlay={isHovered}
+            controls={showPlayer}
+            loop={isHovered}
+            muted={isHovered}
+            playsInline
+            title={video.title}
           />
-        )}
+        );
+      }
+    }
+
+    return (
+      <img
+        src="/thumbnail_placeholder.png"
+        alt={video.title}
+        className="w-full h-full object-cover"
+        onClick={() => setShowPlayer(true)}
+      />
+    );
+  };
+
+  return (
+    <div
+      className="rounded overflow-hidden shadow bg-white transform transition-transform hover:scale-105 hover:shadow-lg"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="aspect-w-16 aspect-h-9 relative">
+        {renderVideo()}
 
         <div className="absolute inset-0 bg-black bg-opacity-30 flex justify-center items-center opacity-0 hover:opacity-100 transition-opacity">
           <Link to={`/video/${video.id}`}>
