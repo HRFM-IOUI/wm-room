@@ -14,8 +14,9 @@ const VideoCard = ({ video }) => {
 
   useEffect(() => {
     const checkAccess = async () => {
-      if (!video?.key) {
+      if (!video?.key || typeof video.key !== "string" || video.key.trim() === "") {
         setBadge("非公開");
+        setCanAccess(false);
         return;
       }
 
@@ -25,33 +26,37 @@ const VideoCard = ({ video }) => {
         return;
       }
 
-      const [vip, purchased] = await Promise.all([
-        isVipUser(),
-        hasPurchasedVideo(video.id),
-      ]);
+      try {
+        const [vip, purchased] = await Promise.all([
+          isVipUser(),
+          hasPurchasedVideo(video.id),
+        ]);
 
-      if (video.type === "main") {
-        if (vip || purchased) {
-          setCanAccess(true);
-          setBadge("視聴可能");
-        } else {
-          setBadge("VIP限定");
+        if (video.type === "main") {
+          if (vip || purchased) {
+            setCanAccess(true);
+            setBadge("視聴可能");
+          } else {
+            setBadge("VIP限定");
+          }
+        } else if (video.type === "dmode") {
+          if (purchased) {
+            setCanAccess(true);
+            setBadge("購入済");
+          } else {
+            setBadge("単品購入");
+          }
         }
-      } else if (video.type === "dmode") {
-        if (purchased) {
-          setCanAccess(true);
-          setBadge("購入済");
-        } else {
-          setBadge("単品購入");
-        }
+      } catch (err) {
+        console.error("動画アクセス判定エラー:", err);
+        setBadge("確認失敗");
       }
     };
 
     checkAccess();
   }, [video]);
 
-  const validKey = video?.key && typeof video.key === "string" && video.key.trim() !== "";
-  const videoUrl = canAccess && validKey ? getVideoPlaybackUrl(video.key) : null;
+  const videoUrl = canAccess ? getVideoPlaybackUrl(video?.key) : null;
 
   useEffect(() => {
     if (!videoRef.current) return;
@@ -122,6 +127,7 @@ const VideoCard = ({ video }) => {
 };
 
 export default VideoCard;
+
 
 
 
