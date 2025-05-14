@@ -12,11 +12,11 @@ const Uploader = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    setStatus('🔄 アップロード開始...');
+    setStatus('🔄 アップロード中');
     setProgress(0);
 
     try {
-      // 1. アップロード初期化
+      // 1. initiate
       const initiateRes = await fetch(`${API_BASE}/initiate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -37,8 +37,6 @@ const Uploader = () => {
         const end = Math.min(start + PART_SIZE, file.size);
         const blobPart = file.slice(start, end);
 
-        console.log('[デバッグ] /part 送信:', { key, uploadId, partNumber });
-
         const partRes = await fetch(`${API_BASE}/part`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -55,17 +53,23 @@ const Uploader = () => {
         const uploadRes = await fetch(signedUrl, {
           method: 'PUT',
           body: blobPart,
+          headers: {
+            'Content-Type': file.type, // ←追加
+          },
         });
+
+        if (!uploadRes.ok) {
+          throw new Error(`part ${partNumber} のアップロード失敗 (${uploadRes.status})`);
+        }
 
         const eTag = uploadRes.headers.get('ETag');
         if (!eTag) throw new Error(`ETagが取得できません（part ${partNumber}）`);
 
         parts.push({ ETag: eTag.replaceAll('"', ''), PartNumber: partNumber });
-
         setProgress(Math.round((partNumber / partCount) * 100));
       }
 
-      // 3. 完了通知
+      // 3. complete
       const completeRes = await fetch(`${API_BASE}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -73,6 +77,7 @@ const Uploader = () => {
       });
 
       const result = await completeRes.json();
+      if (!completeRes.ok) throw new Error(result.error || 'アップロード完了失敗');
       console.log('✅ Upload completed:', result);
       setStatus('✅ アップロード完了！');
 
