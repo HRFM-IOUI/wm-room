@@ -18,7 +18,6 @@ const Toppage = () => {
   const [selectedTag, setSelectedTag] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const observer = useRef();
-  const videoRefs = useRef([]);
   const lastPostRef = useRef(null);
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const isDesktop = useMediaQuery({ minWidth: 768 });
@@ -68,28 +67,7 @@ const Toppage = () => {
     if (lastPostRef.current) observer.current.observe(lastPostRef.current);
   }, [visiblePosts, filteredPosts]);
 
-  useEffect(() => {
-    const options = { threshold: 0.6 };
-    const callback = (entries) => {
-      entries.forEach((entry) => {
-        const video = entry.target;
-        if (entry.isIntersecting) {
-          videoRefs.current.forEach((v) => v !== video && v?.pause());
-          video?.play().catch(() => {});
-        } else {
-          video?.pause();
-        }
-      });
-    };
-    const observer = new IntersectionObserver(callback, options);
-    videoRefs.current.forEach((video) => video && observer.observe(video));
-    return () => observer.disconnect();
-  }, [visiblePosts]);
-
   const renderTabContent = () => {
-    console.log("posts:", posts);
-    console.log("filteredPosts:", filteredPosts);
-
     if (activeTab === "videos") {
       if (filteredPosts.length === 0) {
         return <p className="text-center text-gray-500 py-12">表示する動画がありません。</p>;
