@@ -16,7 +16,7 @@ const Uploader = () => {
     setProgress(0);
 
     try {
-      // ステップ1: /initiate にファイル情報を送信
+      // 1. アップロード初期化
       const initiateRes = await fetch(`${API_BASE}/initiate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -52,18 +52,20 @@ const Uploader = () => {
         const { signedUrl } = await partRes.json();
         if (!signedUrl) throw new Error('signedUrlが取得できません');
 
-        await fetch(signedUrl, {
+        const uploadRes = await fetch(signedUrl, {
           method: 'PUT',
           body: blobPart,
         });
 
-        const eTag = partRes.headers?.get?.('ETag'); // 念のため取得
-        parts.push({ ETag: eTag?.replaceAll('"', '') || '', PartNumber: partNumber });
+        const eTag = uploadRes.headers.get('ETag');
+        if (!eTag) throw new Error(`ETagが取得できません（part ${partNumber}）`);
+
+        parts.push({ ETag: eTag.replaceAll('"', ''), PartNumber: partNumber });
 
         setProgress(Math.round((partNumber / partCount) * 100));
       }
 
-      // ステップ3: /complete を呼び出しアップロード完了を通知
+      // 3. 完了通知
       const completeRes = await fetch(`${API_BASE}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -74,7 +76,7 @@ const Uploader = () => {
       console.log('✅ Upload completed:', result);
       setStatus('✅ アップロード完了！');
 
-      // ✅ Firestoreに登録
+      // 4. Firestoreに登録
       await registerUploadedVideo({
         title: file.name,
         key,
@@ -107,6 +109,7 @@ const Uploader = () => {
 };
 
 export default Uploader;
+
 
 
 
