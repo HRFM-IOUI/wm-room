@@ -1,9 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../../firebase';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+} from 'firebase/firestore';
 import { getUserVipStatus } from '../../utils/vipUtils';
 import { useNavigate } from 'react-router-dom';
+import VideoCard from '../../components/video/VideoCard';
 
 const Mypage = () => {
   const [user] = useAuthState(auth);
@@ -17,6 +25,9 @@ const Mypage = () => {
     gachaCount: 0,
     totalSpent: 0,
   });
+
+  const [purchasedVideos, setPurchasedVideos] = useState([]);
+  const [loadingVideos, setLoadingVideos] = useState(true);
 
   useEffect(() => {
     if (!user) return;
@@ -63,6 +74,39 @@ const Mypage = () => {
       setVipStatus(vs);
     };
     fetchVip();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchPurchasedVideos = async () => {
+      if (!user) return;
+
+      try {
+        const q = query(
+          collection(db, 'purchases'),
+          where('userId', '==', user.uid),
+          where('status', '==', 'paid')
+        );
+        const snap = await getDocs(q);
+        const results = [];
+
+        for (const purchase of snap.docs) {
+          const { videoId } = purchase.data();
+          const videoRef = doc(db, 'videos', videoId);
+          const videoSnap = await getDoc(videoRef);
+          if (videoSnap.exists()) {
+            results.push({ id: videoSnap.id, ...videoSnap.data() });
+          }
+        }
+
+        setPurchasedVideos(results);
+      } catch (err) {
+        console.error('購入済み動画の取得エラー:', err);
+      } finally {
+        setLoadingVideos(false);
+      }
+    };
+
+    fetchPurchasedVideos();
   }, [user]);
 
   if (!user) {
@@ -146,9 +190,26 @@ const Mypage = () => {
             </ul>
           )}
         </div>
+
+        {/* 購入済み動画 */}
+        <div className="bg-gray-50 p-4 rounded shadow space-y-3">
+          <h2 className="text-lg font-semibold mb-2">🎬 購入済み動画</h2>
+          {loadingVideos ? (
+            <p className="text-gray-500">動画を読み込んでいます...</p>
+          ) : purchasedVideos.length === 0 ? (
+            <p className="text-gray-500">購入済み動画はまだありません。</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {purchasedVideos.map((video) => (
+                <VideoCard key={video.id} video={video} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
 export default Mypage;
+

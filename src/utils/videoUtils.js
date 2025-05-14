@@ -6,21 +6,22 @@ import {
   collection,
   serverTimestamp,
 } from 'firebase/firestore';
+import { getUserVipStatus } from './vipUtils';
 
 // ✅ CloudFrontまたはS3パスから再生URLを生成（ログ追加）
 export const getVideoPlaybackUrl = (key) => {
   const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN;
-  console.log("✅ 再生URLドメイン確認:", CLOUDFRONT_DOMAIN); // ← ログ追加
+  console.log("✅ 再生URLドメイン確認:", CLOUDFRONT_DOMAIN);
   return `https://${CLOUDFRONT_DOMAIN}/${key}`;
 };
 
-// ✅ VIPユーザーかどうか判定
+// ✅ VIPユーザーかどうかを判定（rank が VIP12 以上なら true）
 export const isVipUser = async () => {
   const user = auth.currentUser;
   if (!user) return false;
 
-  const snap = await getDoc(doc(db, 'users', user.uid));
-  return snap.exists() && snap.data().vip === true;
+  const vipStatus = await getUserVipStatus(user.uid);
+  return vipStatus.rank === 'VIP12';
 };
 
 // ✅ 指定動画を購入済みかどうか判定
@@ -32,8 +33,14 @@ export const hasPurchasedVideo = async (videoId) => {
   return snap.exists();
 };
 
-// ✅ Firestoreに動画アップロード登録
-export const registerUploadedVideo = async ({ title, key, fileType }) => {
+// ✅ Firestoreに動画アップロード登録（カテゴリ・タグ対応版）
+export const registerUploadedVideo = async ({
+  title,
+  key,
+  fileType,
+  category = 'その他',
+  tags = [],
+}) => {
   const user = auth.currentUser;
   if (!user) throw new Error('ログインが必要です');
 
@@ -43,8 +50,11 @@ export const registerUploadedVideo = async ({ title, key, fileType }) => {
     title,
     key,
     fileType,
+    category,
+    tags,
     userId: user.uid,
     createdAt: serverTimestamp(),
     status: 'public',
   });
 };
+
