@@ -9,6 +9,11 @@ const VideoCard = ({ video }) => {
 
   useEffect(() => {
     const checkAccess = async () => {
+      if (!video?.key) {
+        setBadge("非公開");
+        return;
+      }
+
       if (video.type === "sample") {
         setCanAccess(true);
         setBadge("サンプル");
@@ -42,7 +47,8 @@ const VideoCard = ({ video }) => {
     checkAccess();
   }, [video]);
 
-  const videoUrl = canAccess ? getVideoPlaybackUrl(video.key) : null;
+  const validKey = video?.key && typeof video.key === 'string' && video.key.trim() !== '';
+  const videoUrl = canAccess && validKey ? getVideoPlaybackUrl(video.key) : null;
 
   return (
     <div
@@ -69,12 +75,10 @@ const VideoCard = ({ video }) => {
           />
         )}
 
-        {/* ステータスバッジ */}
         <span className="absolute top-2 left-2 bg-black text-white text-xs px-2 py-1 rounded">
           {badge}
         </span>
 
-        {/* 再生ボタン（アクセス可のみ表示） */}
         {canAccess && (
           <div className="absolute inset-0 bg-black bg-opacity-30 flex justify-center items-center opacity-0 hover:opacity-100 transition-opacity">
             <Link to={`/video/${video.id}`}>
@@ -106,6 +110,7 @@ const VideoCard = ({ video }) => {
 };
 
 export default VideoCard;
+
 
 
 

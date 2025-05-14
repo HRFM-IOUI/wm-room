@@ -2,30 +2,34 @@ import React, { useState } from 'react';
 import { registerUploadedVideo } from '../../utils/videoUtils';
 
 const API_BASE = "https://cf-worker-upload.ik39-10vevic.workers.dev";
-const PART_SIZE = 10 * 1024 * 1024;
+const PART_SIZE = 10 * 1024 * 1024; // 10MB
+const CATEGORIES = ["女子高生","合法jk","jk","幼児体型","幼児服","ロリ","未○年","素人","ハメ撮り","個人撮影","色白","細身","巨乳","パイパン","ガキ","メスガキ","お仕置き","レイプ","中出し","コスプレ","制服","学生","華奢","孕ませ","その他"];
 
 const Uploader = () => {
+  const [file, setFile] = useState(null);
+  const [category, setCategory] = useState("その他");
+  const [tagsInput, setTagsInput] = useState("");
   const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState('');
-  const [category, setCategory] = useState('その他');
-  const [tags, setTags] = useState('');
+  const [status, setStatus] = useState("");
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
+
+  const handleUpload = async () => {
     if (!file) return;
-
-    setStatus('🔄 アップロード中');
+    setStatus('アップロード中...');
     setProgress(0);
 
     try {
-      const initiateRes = await fetch(`${API_BASE}/initiate`, {
+      const resInit = await fetch(`${API_BASE}/initiate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileName: file.name, fileType: file.type }),
       });
 
-      const { uploadId, key } = await initiateRes.json();
-      if (!uploadId || !key) throw new Error('uploadId または key が取得できません');
+      const { uploadId, key } = await resInit.json();
+      if (!uploadId || !key) throw new Error('初期化エラー');
 
       const partCount = Math.ceil(file.size / PART_SIZE);
       const parts = [];
@@ -33,105 +37,105 @@ const Uploader = () => {
       for (let partNumber = 1; partNumber <= partCount; partNumber++) {
         const start = (partNumber - 1) * PART_SIZE;
         const end = Math.min(start + PART_SIZE, file.size);
-        const blobPart = file.slice(start, end);
+        const blob = file.slice(start, end);
 
-        const partRes = await fetch(`${API_BASE}/part`, {
+        const resPart = await fetch(`${API_BASE}/part`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key, uploadId, partNumber }),
         });
 
-        const { signedUrl } = await partRes.json();
-        if (!signedUrl) throw new Error('signedUrlが取得できません');
-
-        const uploadRes = await fetch(signedUrl, {
+        const { signedUrl } = await resPart.json();
+        await fetch(signedUrl, {
           method: 'PUT',
-          body: blobPart,
           headers: { 'Content-Type': file.type },
+          body: blob,
         });
 
-        if (!uploadRes.ok) {
-          throw new Error(`part ${partNumber} のアップロード失敗`);
-        }
-
-        const eTag = uploadRes.headers.get('ETag');
-        if (!eTag) throw new Error('ETag が取得できません');
+        const eTag = resPart.headers?.get('ETag') || 'etag';
         parts.push({ ETag: eTag.replaceAll('"', ''), PartNumber: partNumber });
         setProgress(Math.round((partNumber / partCount) * 100));
       }
 
-      const completeRes = await fetch(`${API_BASE}/complete`, {
+      await fetch(`${API_BASE}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, uploadId, parts }),
       });
 
-      const result = await completeRes.json();
-      if (!completeRes.ok) throw new Error(result.error || 'アップロード完了失敗');
-      setStatus('✅ アップロード完了！');
-
-      // 🔽 Firestore 登録
       await registerUploadedVideo({
         title: file.name,
         key,
         fileType: file.type,
         category,
-        tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+        tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean),
       });
 
-      setStatus('📥 Firestore 登録完了');
+      setStatus("✅ アップロード完了！");
+      setFile(null);
+      setTagsInput('');
     } catch (err) {
-      console.error('❌ Upload error:', err);
-      setStatus('❌ アップロード失敗');
+      console.error(err);
+      setStatus("❌ アップロード失敗");
     }
   };
 
   return (
-    <div className="p-4 border rounded shadow space-y-3">
-      <label htmlFor="fileUpload" className="block font-semibold mb-1">
-        📤 マルチパートアップローダー
-      </label>
-      <input
-        id="fileUpload"
-        type="file"
-        onChange={handleFileChange}
-        className="mb-2"
-      />
+    <div className="p-6 bg-white rounded-xl shadow space-y-4 border">
+      <h2 className="text-lg font-bold text-gray-800">📤 新規動画アップロード</h2>
 
-      {/* カテゴリ選択 */}
+      <input
+        type="file"
+        accept="video/*"
+        onChange={handleFileChange}
+        className="w-full p-2 border rounded"
+      />
+      {file && (
+        <p className="text-sm text-gray-600 mt-1">🎬 選択ファイル: {file.name}</p>
+      )}
+
       <div>
-        <label className="block text-sm font-medium mb-1">カテゴリ</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-1">カテゴリ</label>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="border px-2 py-1 rounded w-full"
+          className="w-full border p-2 rounded"
         >
-          <option value="AV">AV</option>
-          <option value="Vlog">Vlog</option>
-          <option value="Tutorial">Tutorial</option>
-          <option value="その他">その他</option>
+          {CATEGORIES.map((cat) => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
         </select>
       </div>
 
-      {/* タグ入力 */}
       <div>
-        <label className="block text-sm font-medium mt-3 mb-1">タグ（カンマ区切り）</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-1">タグ（カンマ区切り）</label>
         <input
           type="text"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          className="border px-2 py-1 rounded w-full"
-          placeholder="例: 素人,巨乳,個人撮影"
+          placeholder="例: Vlog,旅行,猫"
+          value={tagsInput}
+          onChange={(e) => setTagsInput(e.target.value)}
+          className="w-full border p-2 rounded"
         />
       </div>
 
-      <div className="mt-2">進捗: {progress}%</div>
-      <div className="text-sm text-gray-600">{status}</div>
+      <button
+        disabled={!file}
+        onClick={handleUpload}
+        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded font-semibold"
+      >
+        アップロード開始
+      </button>
+
+      <div className="text-sm text-gray-700">進捗: {progress}%</div>
+      <div className={`text-sm font-medium ${status.includes("失敗") ? "text-red-600" : "text-green-600"}`}>
+        {status}
+      </div>
     </div>
   );
 };
 
 export default Uploader;
+
 
 
 
