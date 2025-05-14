@@ -1,7 +1,6 @@
-// src/pages/content/PurchasePage.js
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { db, auth } from '../../firebase';
+import { db, auth } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
 
 const PurchasePage = () => {
@@ -38,14 +37,14 @@ const PurchasePage = () => {
     }
 
     try {
-      const res = await fetch("https://shrill-unit-35d4.ik39-10vevic.workers.dev", {
+      const res = await fetch("https://<your-worker-subdomain>.workers.dev/purchase", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: user.uid,
           userEmail: user.email,
           videoId: video.id,
-          returnUrl: `${window.location.origin}/thankyou?videoId=${video.id}`,
+          returnUrl: `${window.location.origin}/thankyou?videoId=${video.id}&uid=${user.uid}`,
         }),
       });
 
