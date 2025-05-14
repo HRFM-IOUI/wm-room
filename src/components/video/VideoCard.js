@@ -10,6 +10,7 @@ const VideoCard = ({ video }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [canAccess, setCanAccess] = useState(false);
   const [badge, setBadge] = useState("確認中");
+  const [videoUrl, setVideoUrl] = useState(null);
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -23,6 +24,7 @@ const VideoCard = ({ video }) => {
       if (video.type === "sample") {
         setCanAccess(true);
         setBadge("サンプル");
+        setVideoUrl(getVideoPlaybackUrl(video.key));
         return;
       }
 
@@ -36,6 +38,7 @@ const VideoCard = ({ video }) => {
           if (vip || purchased) {
             setCanAccess(true);
             setBadge("視聴可能");
+            setVideoUrl(getVideoPlaybackUrl(video.key));
           } else {
             setBadge("VIP限定");
           }
@@ -43,6 +46,7 @@ const VideoCard = ({ video }) => {
           if (purchased) {
             setCanAccess(true);
             setBadge("購入済");
+            setVideoUrl(getVideoPlaybackUrl(video.key));
           } else {
             setBadge("単品購入");
           }
@@ -56,11 +60,10 @@ const VideoCard = ({ video }) => {
     checkAccess();
   }, [video]);
 
-  const videoUrl = canAccess ? getVideoPlaybackUrl(video?.key) : null;
-
   useEffect(() => {
-    if (!videoRef.current) return;
-    if (isHovered && videoUrl) {
+    if (!videoRef.current || !videoUrl) return;
+
+    if (isHovered) {
       videoRef.current.play().catch(() => {});
     } else {
       videoRef.current.pause();
@@ -127,6 +130,7 @@ const VideoCard = ({ video }) => {
 };
 
 export default VideoCard;
+
 
 
 
