@@ -56,10 +56,7 @@ const VideoCard = ({ video }) => {
     checkAccess();
   }, [video]);
 
-  const videoUrl =
-    canAccess && video?.key && typeof video.key === "string"
-      ? getVideoPlaybackUrl(video.key)
-      : null;
+  const videoUrl = canAccess ? getVideoPlaybackUrl(video?.key) : null;
 
   useEffect(() => {
     if (!videoRef.current) return;
