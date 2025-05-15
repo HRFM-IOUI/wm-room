@@ -2,13 +2,21 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
-import VideoPlayer from '../../components/video/VideoPlayer';
+import ShakaPlayerComponent from '../../components/video/ShakaPlayerComponent';
 import DownloadButton from '../../components/video/DownloadButton';
 import { isVipUser, hasPurchasedVideo } from '../../utils/videoUtils';
 
-const VideoDetail = () => {
-  const { id } = useParams();
-  const [video, setVideo] = useState(null);
+interface VideoData {
+  id: string;
+  title: string;
+  key: string;
+  type: 'sample' | 'main' | 'dmode';
+  [key: string]: any;
+}
+
+const VideoDetail: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const [video, setVideo] = useState<VideoData | null>(null);
   const [loading, setLoading] = useState(true);
   const [accessGranted, setAccessGranted] = useState(false);
   const [userStatus, setUserStatus] = useState({ isVip: false, hasPurchased: false });
@@ -16,7 +24,7 @@ const VideoDetail = () => {
   useEffect(() => {
     const fetchVideo = async () => {
       try {
-        const ref = doc(db, 'videos', id);
+        const ref = doc(db, 'videos', id!);
         const snap = await getDoc(ref);
         if (!snap.exists()) {
           setVideo(null);
@@ -24,7 +32,7 @@ const VideoDetail = () => {
           return;
         }
 
-        const data = { id: snap.id, ...snap.data() };
+        const data = { id: snap.id, ...snap.data() } as VideoData;
         setVideo(data);
 
         const user = auth.currentUser;
@@ -63,7 +71,7 @@ const VideoDetail = () => {
 
       {accessGranted ? (
         <>
-          <VideoPlayer video={video} />
+          <ShakaPlayerComponent manifestUrl={`https://toafans-shop.s3.ap-northeast-1.amazonaws.com/converted/${video.key}/playlist.m3u8`} />
           <DownloadButton video={video} />
         </>
       ) : (
@@ -114,6 +122,8 @@ const VideoDetail = () => {
 };
 
 export default VideoDetail;
+
+
 
 
 

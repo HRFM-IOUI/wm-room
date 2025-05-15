@@ -1,3 +1,4 @@
+// src/utils/videoUtils.ts
 import { auth, db } from '../firebase';
 import {
   getDoc,
@@ -9,23 +10,19 @@ import {
 } from 'firebase/firestore';
 import { getUserVipStatus } from './vipUtils';
 
-// ✅ 再生URLを生成（HLS形式に対応：デフォルトは.m3u8）
-export const getVideoPlaybackUrl = (key, format = 'hls') => {
+export const getVideoPlaybackUrl = (key: string, format: 'hls' | 'mp4' = 'hls'): string | null => {
   const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN;
   if (!CLOUDFRONT_DOMAIN || !key) return null;
 
   const formattedKey =
-    format === 'hls'
-      ? `${key}/index.m3u8`
-      : key;
+    format === 'hls' ? `${key}/index.m3u8` : key;
 
   const fullUrl = `https://${CLOUDFRONT_DOMAIN}/${formattedKey}`;
-  console.log("✅ 再生URL生成:", fullUrl);
+  console.log('✅ 再生URL生成:', fullUrl);
   return fullUrl;
 };
 
-// ✅ VIPユーザーかどうかを判定（rank が VIP12 以上なら true）
-export const isVipUser = async () => {
+export const isVipUser = async (): Promise<boolean> => {
   const user = auth.currentUser;
   if (!user) return false;
 
@@ -33,8 +30,7 @@ export const isVipUser = async () => {
   return vipStatus.rank === 'VIP12';
 };
 
-// ✅ 指定動画を購入済みかどうか判定
-export const hasPurchasedVideo = async (videoId) => {
+export const hasPurchasedVideo = async (videoId: string): Promise<boolean> => {
   const user = auth.currentUser;
   if (!user) return false;
 
@@ -42,14 +38,21 @@ export const hasPurchasedVideo = async (videoId) => {
   return snap.exists();
 };
 
-// ✅ Firestoreに動画アップロード登録（カテゴリ・タグ対応版）
+interface RegisterVideoParams {
+  title: string;
+  key: string;
+  fileType: string;
+  category?: string;
+  tags?: string[];
+}
+
 export const registerUploadedVideo = async ({
   title,
   key,
   fileType,
   category = 'その他',
   tags = [],
-}) => {
+}: RegisterVideoParams) => {
   const user = auth.currentUser;
   if (!user) throw new Error('ログインが必要です');
 
@@ -65,11 +68,10 @@ export const registerUploadedVideo = async ({
     status: 'public',
   });
 
-  return newDoc; // ← docRefを返す（変換後のURL保存に使う）
+  return newDoc;
 };
 
-// ✅ HLS変換された再生URLを保存
-export const saveConvertedVideoUrl = async (videoId, outputPath) => {
+export const saveConvertedVideoUrl = async (videoId: string, outputPath: string) => {
   const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN;
   const playbackUrl = `https://${CLOUDFRONT_DOMAIN}/${outputPath}`;
   await updateDoc(doc(db, 'videos', videoId), {
@@ -77,5 +79,7 @@ export const saveConvertedVideoUrl = async (videoId, outputPath) => {
     status: 'converted',
   });
 };
+
+
 
 
