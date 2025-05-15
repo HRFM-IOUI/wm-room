@@ -8,11 +8,19 @@ import {
 } from 'firebase/firestore';
 import { getUserVipStatus } from './vipUtils';
 
-// ✅ CloudFrontまたはS3パスから再生URLを生成（ログ追加）
-export const getVideoPlaybackUrl = (key) => {
+// ✅ 再生URLを生成（HLS形式に対応：デフォルトは.m3u8）
+export const getVideoPlaybackUrl = (key, format = 'hls') => {
   const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN;
-  console.log("✅ 再生URLドメイン確認:", CLOUDFRONT_DOMAIN);
-  return `https://${CLOUDFRONT_DOMAIN}/${key}`;
+  if (!CLOUDFRONT_DOMAIN || !key) return null;
+
+  const formattedKey =
+    format === 'hls'
+      ? `${key}/index.m3u8`  // HLS形式（例: videos/abc123/index.m3u8）
+      : key;                 // mp4などの場合はそのまま返す
+
+  const fullUrl = `https://${CLOUDFRONT_DOMAIN}/${formattedKey}`;
+  console.log("✅ 再生URL生成:", fullUrl);
+  return fullUrl;
 };
 
 // ✅ VIPユーザーかどうかを判定（rank が VIP12 以上なら true）
@@ -57,4 +65,5 @@ export const registerUploadedVideo = async ({
     status: 'public',
   });
 };
+
 

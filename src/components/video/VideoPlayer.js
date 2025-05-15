@@ -4,23 +4,28 @@ import { getVideoPlaybackUrl } from '../../utils/videoUtils';
 
 const VideoPlayer = ({ video }) => {
   const videoRef = useRef(null);
-  const videoUrl = video?.key ? getVideoPlaybackUrl(video.key) : null;
+  const videoUrl = video?.key ? getVideoPlaybackUrl(`${video.key}/index.m3u8`) : null;
 
   useEffect(() => {
-    if (!videoUrl || !videoRef.current) return;
-
     const videoElement = videoRef.current;
+    if (!videoUrl || !videoElement) return;
+
     let hls;
 
-    if (Hls.isSupported() && videoUrl.endsWith('.m3u8')) {
+    const isHls = videoUrl.endsWith('.m3u8');
+
+    if (isHls && Hls.isSupported()) {
       hls = new Hls();
       hls.loadSource(videoUrl);
       hls.attachMedia(videoElement);
       hls.on(Hls.Events.ERROR, (event, data) => {
-        console.error('HLS error', data);
+        console.error('HLS.js error:', data);
       });
-    } else {
+    } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safariなどネイティブ対応ブラウザ用
       videoElement.src = videoUrl;
+    } else {
+      console.warn('このブラウザではHLS再生に非対応です。');
     }
 
     return () => {
@@ -42,12 +47,16 @@ const VideoPlayer = ({ video }) => {
       <video
         ref={videoRef}
         controls
+        muted
+        playsInline
         className="w-full rounded-xl shadow-md"
+        style={{ maxHeight: '70vh' }}
       />
     </div>
   );
 };
 
 export default VideoPlayer;
+
 
 
