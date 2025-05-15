@@ -3,6 +3,7 @@ import {
   getDoc,
   doc,
   addDoc,
+  updateDoc,
   collection,
   serverTimestamp,
 } from 'firebase/firestore';
@@ -15,8 +16,8 @@ export const getVideoPlaybackUrl = (key, format = 'hls') => {
 
   const formattedKey =
     format === 'hls'
-      ? `${key}/index.m3u8`  // HLS形式（例: videos/abc123/index.m3u8）
-      : key;                 // mp4などの場合はそのまま返す
+      ? `${key}/index.m3u8`
+      : key;
 
   const fullUrl = `https://${CLOUDFRONT_DOMAIN}/${formattedKey}`;
   console.log("✅ 再生URL生成:", fullUrl);
@@ -53,8 +54,7 @@ export const registerUploadedVideo = async ({
   if (!user) throw new Error('ログインが必要です');
 
   const videosRef = collection(db, 'videos');
-
-  await addDoc(videosRef, {
+  const newDoc = await addDoc(videosRef, {
     title,
     key,
     fileType,
@@ -63,6 +63,18 @@ export const registerUploadedVideo = async ({
     userId: user.uid,
     createdAt: serverTimestamp(),
     status: 'public',
+  });
+
+  return newDoc; // ← docRefを返す（変換後のURL保存に使う）
+};
+
+// ✅ HLS変換された再生URLを保存
+export const saveConvertedVideoUrl = async (videoId, outputPath) => {
+  const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN;
+  const playbackUrl = `https://${CLOUDFRONT_DOMAIN}/${outputPath}`;
+  await updateDoc(doc(db, 'videos', videoId), {
+    playbackUrl,
+    status: 'converted',
   });
 };
 

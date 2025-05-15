@@ -1,17 +1,17 @@
+// ✅ 統合版 VideoPlayer.js
 import React, { useEffect, useRef } from 'react';
 import Hls from 'hls.js';
 import { getVideoPlaybackUrl } from '../../utils/videoUtils';
 
 const VideoPlayer = ({ video }) => {
   const videoRef = useRef(null);
-  const videoUrl = video?.key ? getVideoPlaybackUrl(`${video.key}/index.m3u8`) : null;
+  const videoUrl = video?.playbackUrl || getVideoPlaybackUrl(video?.key);
 
   useEffect(() => {
     const videoElement = videoRef.current;
     if (!videoUrl || !videoElement) return;
 
     let hls;
-
     const isHls = videoUrl.endsWith('.m3u8');
 
     if (isHls && Hls.isSupported()) {
@@ -22,7 +22,6 @@ const VideoPlayer = ({ video }) => {
         console.error('HLS.js error:', data);
       });
     } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-      // Safariなどネイティブ対応ブラウザ用
       videoElement.src = videoUrl;
     } else {
       console.warn('このブラウザではHLS再生に非対応です。');
@@ -57,6 +56,7 @@ const VideoPlayer = ({ video }) => {
 };
 
 export default VideoPlayer;
+
 
 
 

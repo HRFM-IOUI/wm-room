@@ -1,8 +1,10 @@
+// ✅ 統合版 Uploader.js
 import React, { useState } from 'react';
-import { registerUploadedVideo } from '../../utils/videoUtils';
+import { registerUploadedVideo, saveConvertedVideoUrl } from '../../utils/videoUtils';
+import { requestVideoConversion } from '../../utils/api';
 
 const API_BASE = "https://cf-worker-upload.ik39-10vevic.workers.dev";
-const PART_SIZE = 10 * 1024 * 1024; // 10MB
+const PART_SIZE = 10 * 1024 * 1024;
 const CATEGORIES = ["女子高生","合法jk","jk","幼児体型","幼児服","ロリ","未○年","素人","ハメ撮り","個人撮影","色白","細身","巨乳","パイパン","ガキ","メスガキ","お仕置き","レイプ","中出し","コスプレ","制服","学生","華奢","孕ませ","その他"];
 
 const Uploader = () => {
@@ -27,7 +29,6 @@ const Uploader = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileName: file.name, fileType: file.type }),
       });
-
       const { uploadId, key } = await resInit.json();
       if (!uploadId || !key) throw new Error('初期化エラー');
 
@@ -63,7 +64,7 @@ const Uploader = () => {
         body: JSON.stringify({ key, uploadId, parts }),
       });
 
-      await registerUploadedVideo({
+      const videoDocRef = await registerUploadedVideo({
         title: file.name,
         key,
         fileType: file.type,
@@ -71,7 +72,11 @@ const Uploader = () => {
         tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean),
       });
 
-      setStatus("✅ アップロード完了！");
+      // ✅ HLS変換呼び出しと保存
+      const outputPath = await requestVideoConversion(key);
+      await saveConvertedVideoUrl(videoDocRef.id, outputPath);
+
+      setStatus("✅ アップロード＆変換完了！");
       setFile(null);
       setTagsInput('');
     } catch (err) {
@@ -83,58 +88,33 @@ const Uploader = () => {
   return (
     <div className="p-6 bg-white rounded-xl shadow space-y-4 border">
       <h2 className="text-lg font-bold text-gray-800">📤 新規動画アップロード</h2>
-
-      <input
-        type="file"
-        accept="video/*"
-        onChange={handleFileChange}
-        className="w-full p-2 border rounded"
-      />
-      {file && (
-        <p className="text-sm text-gray-600 mt-1">🎬 選択ファイル: {file.name}</p>
-      )}
+      <input type="file" accept="video/*" onChange={handleFileChange} className="w-full p-2 border rounded" />
+      {file && <p className="text-sm text-gray-600 mt-1">🎬 選択ファイル: {file.name}</p>}
 
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-1">カテゴリ</label>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="w-full border p-2 rounded"
-        >
-          {CATEGORIES.map((cat) => (
-            <option key={cat} value={cat}>{cat}</option>
-          ))}
+        <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border p-2 rounded">
+          {CATEGORIES.map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
         </select>
       </div>
 
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-1">タグ（カンマ区切り）</label>
-        <input
-          type="text"
-          placeholder="例: Vlog,旅行,猫"
-          value={tagsInput}
-          onChange={(e) => setTagsInput(e.target.value)}
-          className="w-full border p-2 rounded"
-        />
+        <input type="text" placeholder="例: Vlog,旅行,猫" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} className="w-full border p-2 rounded" />
       </div>
 
-      <button
-        disabled={!file}
-        onClick={handleUpload}
-        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded font-semibold"
-      >
+      <button disabled={!file} onClick={handleUpload} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded font-semibold">
         アップロード開始
       </button>
 
       <div className="text-sm text-gray-700">進捗: {progress}%</div>
-      <div className={`text-sm font-medium ${status.includes("失敗") ? "text-red-600" : "text-green-600"}`}>
-        {status}
-      </div>
+      <div className={`text-sm font-medium ${status.includes("失敗") ? "text-red-600" : "text-green-600"}`}>{status}</div>
     </div>
   );
 };
 
 export default Uploader;
+
 
 
 
