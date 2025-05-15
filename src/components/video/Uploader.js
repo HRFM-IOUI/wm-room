@@ -1,4 +1,4 @@
-// ✅ 統合版 Uploader.js
+// ✅ 修正版 Uploader.js with 正常なETag取得 + エラー回避
 import React, { useState } from 'react';
 import { registerUploadedVideo, saveConvertedVideoUrl } from '../../utils/videoUtils';
 import { requestVideoConversion } from '../../utils/api';
@@ -47,13 +47,15 @@ const Uploader = () => {
         });
 
         const { signedUrl } = await resPart.json();
-        await fetch(signedUrl, {
+        const uploadRes = await fetch(signedUrl, {
           method: 'PUT',
           headers: { 'Content-Type': file.type },
           body: blob,
         });
 
-        const eTag = resPart.headers?.get('ETag') || 'etag';
+        const eTag = uploadRes.headers.get('ETag');
+        if (!eTag) throw new Error(`ETagが取得できませんでした（Part ${partNumber}）`);
+
         parts.push({ ETag: eTag.replaceAll('"', ''), PartNumber: partNumber });
         setProgress(Math.round((partNumber / partCount) * 100));
       }
@@ -64,7 +66,7 @@ const Uploader = () => {
         body: JSON.stringify({ key, uploadId, parts }),
       });
 
-      const videoDocRef = await registerUploadedVideo({
+      const docRef = await registerUploadedVideo({
         title: file.name,
         key,
         fileType: file.type,
@@ -72,16 +74,15 @@ const Uploader = () => {
         tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean),
       });
 
-      // ✅ HLS変換呼び出しと保存
       const outputPath = await requestVideoConversion(key);
-      await saveConvertedVideoUrl(videoDocRef.id, outputPath);
+      await saveConvertedVideoUrl(docRef.id, outputPath);
 
       setStatus("✅ アップロード＆変換完了！");
       setFile(null);
       setTagsInput('');
     } catch (err) {
       console.error(err);
-      setStatus("❌ アップロード失敗");
+      setStatus("❌ アップロード失敗: " + err.message);
     }
   };
 

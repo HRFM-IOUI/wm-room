@@ -1,4 +1,4 @@
-// ✅ 統合版 VideoPlayer.js
+// ✅ 統合版 VideoPlayer.js（最新版）
 import React, { useEffect, useRef } from 'react';
 import Hls from 'hls.js';
 import { getVideoPlaybackUrl } from '../../utils/videoUtils';
@@ -56,6 +56,7 @@ const VideoPlayer = ({ video }) => {
 };
 
 export default VideoPlayer;
+
 
 
 
