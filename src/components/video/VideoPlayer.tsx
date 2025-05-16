@@ -15,7 +15,10 @@ type VideoPlayerProps = {
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ video }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  const videoUrl = video?.playbackUrl ?? getVideoPlaybackUrl(video?.key ?? '') ?? undefined;
+  // CloudFront URL または Firebase URL
+  const videoUrl =
+    video?.playbackUrl ??
+    (video?.key ? getVideoPlaybackUrl(video.key, 'hls') : undefined);
 
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -31,10 +34,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video }) => {
       hls.on(Hls.Events.ERROR, (_event, data) => {
         console.error('HLS.js error:', data);
       });
-    } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+    } else if (
+      isHls &&
+      videoElement.canPlayType('application/vnd.apple.mpegurl')
+    ) {
+      // iOS Safari など
       videoElement.src = videoUrl;
     } else {
-      console.warn('このブラウザではHLS再生に非対応です。');
+      console.warn('このブラウザはHLS再生に非対応です。');
     }
 
     return () => {
@@ -48,8 +55,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video }) => {
 
   if (!videoUrl) {
     return (
-      <div className="text-center text-gray-500 text-sm py-4">
-        ⚠️ 再生する動画データが見つかりません
+      <div className="text-center text-sm text-gray-500 py-6">
+        ⚠️ 再生用URLが設定されていません。変換待ちまたは未登録です。
       </div>
     );
   }
@@ -69,6 +76,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video }) => {
 };
 
 export default VideoPlayer;
+
 
 
 
