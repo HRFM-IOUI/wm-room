@@ -41,7 +41,6 @@ const DmodePage: React.FC = () => {
   const [visibleVideos, setVisibleVideos] = useState<VideoData[]>([]);
   const [activeTab, setActiveTab] = useState<"videos" | "goods" | "gacha">("videos");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedTag, setSelectedTag] = useState<string>("");
 
   const observer = useRef<IntersectionObserver | null>(null);
   const lastRef = useRef<HTMLDivElement | null>(null);
@@ -52,7 +51,7 @@ const DmodePage: React.FC = () => {
     const fetchVip = async () => {
       if (user) {
         const vs = await getUserVipStatus(user.uid);
-        setVipStatus(vs as VipStatus); // ✅ 型アサーション追加でエラー回避
+        setVipStatus(vs as VipStatus);
       }
     };
     fetchVip();
@@ -131,7 +130,7 @@ const DmodePage: React.FC = () => {
               🎖️ VIPランク: <strong>{vipStatus.rank}</strong> / ログイン連続: {vipStatus.streak}日 / ポイント: {vipStatus.points}pt
             </div>
           )}
-          <MenuPanel isDmode={true} /> {/* ✅ props定義追加済み前提 */}
+          <MenuPanel isDmode={true} />
           {isDesktop && (
             <TabSwitcher activeTab={activeTab} setActiveTab={setActiveTab} />
           )}
@@ -142,7 +141,7 @@ const DmodePage: React.FC = () => {
           <SidebarRight
             selectedCategory={selectedCategory}
             setSelectedCategory={setSelectedCategory}
-            onTagSelect={setSelectedTag}
+            onTagSelect={() => {}} // 必須なら空関数でもOK
           />
         </aside>
       </div>
@@ -155,6 +154,7 @@ const DmodePage: React.FC = () => {
 };
 
 export default DmodePage;
+
 
 
 
