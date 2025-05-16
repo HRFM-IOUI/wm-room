@@ -9,7 +9,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 
-const ThankYouPage = () => {
+const ThankYouPage: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,14 +29,12 @@ const ThankYouPage = () => {
         const snap = await getDoc(ref);
 
         if (snap.exists()) {
-          // 既存レコード → ステータス更新のみ
           await updateDoc(ref, {
             status: "paid",
             updatedAt: serverTimestamp(),
           });
           console.log("✅ 購入ステータスを更新しました");
         } else {
-          // 新規レコード作成
           await setDoc(ref, {
             userId: uid,
             videoId,
@@ -51,7 +49,7 @@ const ThankYouPage = () => {
     };
 
     updatePurchaseStatus();
-  }, [navigate]);
+  }, []);
 
   return (
     <div className="p-8 max-w-xl mx-auto text-center bg-white shadow rounded">

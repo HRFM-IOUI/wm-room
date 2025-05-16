@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   collection,
   query,
@@ -7,43 +7,51 @@ import {
   deleteDoc,
   updateDoc,
   doc,
-} from 'firebase/firestore';
-import { auth, db } from '../../firebase';
-import VideoPlayer from '../../components/video/VideoPlayer';
-import Uploader from '../../components/video/Uploader';
+} from "firebase/firestore";
+import { auth, db } from "../../firebase";
+import VideoPlayer from "../../components/video/VideoPlayer";
+import Uploader from "../../components/video/Uploader";
 
-const Dashboard = () => {
-  const [videos, setVideos] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
+type VideoData = {
+  id: string;
+  title: string;
+  key: string;
+  isPublic: boolean;
+  [key: string]: any;
+};
+
+const Dashboard: React.FC = () => {
+  const [videos, setVideos] = useState<VideoData[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   const fetchVideos = async () => {
     const user = auth.currentUser;
     if (!user) return;
 
-    const q = query(collection(db, 'videos'), where('userId', '==', user.uid));
+    const q = query(collection(db, "videos"), where("userId", "==", user.uid));
     const querySnapshot = await getDocs(q);
     const videoList = querySnapshot.docs.map((docSnap) => ({
       id: docSnap.id,
       ...docSnap.data(),
-    }));
+    })) as VideoData[];
     setVideos(videoList);
   };
 
-  const handleDelete = async (video) => {
-    if (!window.confirm('本当に削除しますか？')) return;
+  const handleDelete = async (video: VideoData) => {
+    if (!window.confirm("本当に削除しますか？")) return;
 
     try {
-      await deleteDoc(doc(db, 'videos', video.id));
+      await deleteDoc(doc(db, "videos", video.id));
       setVideos((prev) => prev.filter((v) => v.id !== video.id));
     } catch (err) {
       console.error(err);
-      alert('削除に失敗しました');
+      alert("削除に失敗しました");
     }
   };
 
-  const togglePublic = async (video) => {
+  const togglePublic = async (video: VideoData) => {
     try {
-      const ref = doc(db, 'videos', video.id);
+      const ref = doc(db, "videos", video.id);
       await updateDoc(ref, { isPublic: !video.isPublic });
       setVideos((prev) =>
         prev.map((v) =>
@@ -52,7 +60,7 @@ const Dashboard = () => {
       );
     } catch (err) {
       console.error(err);
-      alert('更新に失敗しました');
+      alert("更新に失敗しました");
     }
   };
 
@@ -93,10 +101,10 @@ const Dashboard = () => {
                 <button
                   onClick={() => togglePublic(video)}
                   className={`px-3 py-1 rounded ${
-                    video.isPublic ? 'bg-green-500' : 'bg-gray-400'
+                    video.isPublic ? "bg-green-500" : "bg-gray-400"
                   } text-white`}
                 >
-                  {video.isPublic ? '公開中' : '非公開'}
+                  {video.isPublic ? "公開中" : "非公開"}
                 </button>
                 <button
                   onClick={() => handleDelete(video)}
@@ -114,6 +122,7 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
 
 
 

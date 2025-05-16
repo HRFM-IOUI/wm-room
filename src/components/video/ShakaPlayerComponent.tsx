@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 
+// Shaka Player はモジュールとして正しく型定義されていないため、requireで動的に読み込む
 let shaka: any;
 if (typeof window !== 'undefined') {
-  shaka = require('shaka-player');
+  shaka = require('shaka-player/dist/shaka-player.compiled.js');
 }
 
 interface ShakaPlayerProps {
@@ -43,8 +44,6 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
 };
 
 export default ShakaPlayerComponent;
-
-
 
 
 

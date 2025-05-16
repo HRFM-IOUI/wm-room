@@ -6,19 +6,20 @@ interface DownloadButtonProps {
   video: {
     key: string;
     title?: string;
-  };
+  } | null;
 }
 
 const DownloadButton: React.FC<DownloadButtonProps> = ({ video }) => {
-  const downloadUrl = getVideoPlaybackUrl(video.key, 'mp4');
+  if (!video?.key) return null;
 
+  const downloadUrl = getVideoPlaybackUrl(video.key, 'mp4');
   if (!downloadUrl) return null;
 
   return (
     <div className="mt-4">
       <a
         href={downloadUrl}
-        download
+        download={video.title || 'video.mp4'}
         className="inline-block bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
       >
         ダウンロード
@@ -28,4 +29,3 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ video }) => {
 };
 
 export default DownloadButton;
-

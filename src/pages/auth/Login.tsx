@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, ChangeEvent, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, provider } from "../../firebase";
@@ -8,14 +8,14 @@ import FormLabel from "../../components/ui/FormLabel";
 import FormInput from "../../components/ui/FormInput";
 import SectionBox from "../../components/ui/SectionBox";
 
-const Login = () => {
+const Login: React.FC = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -26,9 +26,9 @@ const Login = () => {
 
       await signInWithEmailAndPassword(auth, email, password);
       navigate("/toppage");
-    } catch (err) {
+    } catch (err: any) {
       console.error("ログインエラー:", err);
-      setError("ログインに失敗しました: " + (err.message || "エラーが発生しました。"));
+      setError("ログインに失敗しました: " + (err?.message || "エラーが発生しました。"));
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,7 @@ const Login = () => {
               type="email"
               name="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               placeholder="例：user@example.com"
               required
             />
@@ -69,7 +69,7 @@ const Login = () => {
               type="password"
               name="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               placeholder="6文字以上"
               required
               minLength={6}
@@ -93,13 +93,19 @@ const Login = () => {
           onClick={handleGoogleLogin}
           className="w-full flex items-center justify-center gap-2 bg-white border rounded-full py-2.5 px-4 hover:bg-gray-100 shadow transition text-sm text-black font-semibold"
         >
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+          <img
+            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+            alt="Google"
+            className="w-5 h-5"
+          />
           Googleでログイン
         </button>
 
         <p className="text-sm text-center text-gray-600">
           アカウントをお持ちでない方は{" "}
-          <a href="/signup" className="text-theme-pink hover:underline font-semibold">新規登録</a>
+          <a href="/signup" className="text-theme-pink hover:underline font-semibold">
+            新規登録
+          </a>
         </p>
 
         <p className="text-xs text-center text-gray-400">
@@ -111,4 +117,5 @@ const Login = () => {
 };
 
 export default Login;
+
 

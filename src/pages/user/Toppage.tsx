@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { db } from "../../firebase";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  query,
+  orderBy,
+} from "firebase/firestore";
 import { useSearchParams } from "react-router-dom";
 import SidebarLeft from "../../components/common/SidebarLeft";
 import SidebarRight from "../../components/common/SidebarRight";
@@ -10,16 +15,28 @@ import TabSwitcher from "../../components/common/TabSwitcher";
 import VideoCard from "../../components/video/VideoCard";
 import { useMediaQuery } from "react-responsive";
 
-const Toppage = () => {
+// ✅ VideoData型に "key: string" を追加済み
+type VideoData = {
+  id: string;
+  key: string;
+  title?: string;
+  tags?: string[];
+  category?: string;
+  isPublic?: boolean;
+  playbackUrl?: string;
+  [key: string]: any;
+};
+
+const Toppage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState("videos");
-  const [posts, setPosts] = useState([]);
-  const [visiblePosts, setVisiblePosts] = useState([]);
-  const [selectedTag, setSelectedTag] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const observer = useRef();
-  const videoRefs = useRef([]);
-  const lastPostRef = useRef(null);
+  const [activeTab, setActiveTab] = useState<"videos" | "goods" | "gacha">("videos");
+  const [posts, setPosts] = useState<VideoData[]>([]);
+  const [visiblePosts, setVisiblePosts] = useState<VideoData[]>([]);
+  const [selectedTag, setSelectedTag] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const observer = useRef<IntersectionObserver | null>(null);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const lastPostRef = useRef<HTMLDivElement | null>(null);
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const isDesktop = useMediaQuery({ minWidth: 768 });
 
@@ -39,7 +56,7 @@ const Toppage = () => {
       const fetched = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-      }));
+      })) as VideoData[];
       setPosts(fetched);
       setVisiblePosts(fetched.slice(0, 6));
     };
@@ -48,7 +65,9 @@ const Toppage = () => {
 
   const filteredPosts = useMemo(() => {
     return posts.filter((post) => {
-      const matchTag = !selectedTag || (Array.isArray(post.tags) && post.tags.includes(selectedTag));
+      const matchTag =
+        !selectedTag ||
+        (Array.isArray(post.tags) && post.tags.includes(selectedTag));
       const matchCategory = !selectedCategory || post.category === selectedCategory;
       const isPublic = post.isPublic !== false;
       return matchTag && matchCategory && isPublic;
@@ -70,9 +89,9 @@ const Toppage = () => {
 
   useEffect(() => {
     const options = { threshold: 0.6 };
-    const callback = (entries) => {
+    const callback: IntersectionObserverCallback = (entries) => {
       entries.forEach((entry) => {
-        const video = entry.target;
+        const video = entry.target as HTMLVideoElement;
         if (entry.isIntersecting) {
           videoRefs.current.forEach((v) => v !== video && v?.pause());
           video?.play().catch(() => {});
@@ -81,18 +100,21 @@ const Toppage = () => {
         }
       });
     };
-    const observer = new IntersectionObserver(callback, options);
-    videoRefs.current.forEach((video) => video && observer.observe(video));
-    return () => observer.disconnect();
+    const intersectionObserver = new IntersectionObserver(callback, options);
+    videoRefs.current.forEach((video) => {
+      if (video) intersectionObserver.observe(video);
+    });
+    return () => intersectionObserver.disconnect();
   }, [visiblePosts]);
 
   const renderTabContent = () => {
-    console.log("posts:", posts);
-    console.log("filteredPosts:", filteredPosts);
-
     if (activeTab === "videos") {
       if (filteredPosts.length === 0) {
-        return <p className="text-center text-gray-500 py-12">表示する動画がありません。</p>;
+        return (
+          <p className="text-center text-gray-500 py-12">
+            表示する動画がありません。
+          </p>
+        );
       }
       return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -148,6 +170,8 @@ const Toppage = () => {
 };
 
 export default Toppage;
+
+
 
 
 

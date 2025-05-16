@@ -1,7 +1,10 @@
-// src/components/ui/FormInput.js
-import React from "react";
+import React, { InputHTMLAttributes } from "react";
 
-const FormInput = ({
+type FormInputProps = {
+  className?: string;
+} & InputHTMLAttributes<HTMLInputElement>;
+
+const FormInput: React.FC<FormInputProps> = ({
   type = "text",
   name,
   value,
@@ -24,7 +27,7 @@ const FormInput = ({
         focus:outline-none focus:ring-2 focus:ring-theme-pink
         ${className}
       `}
-      {...props}npm 
+      {...props}
     />
   );
 };

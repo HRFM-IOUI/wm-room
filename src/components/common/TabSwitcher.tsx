@@ -1,25 +1,35 @@
-// src/components/common/TabSwitcher.js
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const tabs = [
+// タブ定義の型
+type Tab = {
+  key: 'videos' | 'goods' | 'gacha';
+  label: string;
+  badge?: string;
+  badgeStyle?: 'pulse' | 'balloon';
+};
+
+const tabs: Tab[] = [
   { key: 'videos', label: '動画', badge: 'おすすめ', badgeStyle: 'balloon' },
   { key: 'goods', label: 'グッズ' },
   { key: 'gacha', label: 'まもなく公開', badge: 'まもなく公開', badgeStyle: 'pulse' },
 ];
 
-const TabSwitcher = ({ activeTab, setActiveTab }) => {
+// Props型定義
+type TabSwitcherProps = {
+  activeTab: 'videos' | 'goods' | 'gacha';
+  setActiveTab: (tab: 'videos' | 'goods' | 'gacha') => void;
+};
+
+const TabSwitcher: React.FC<TabSwitcherProps> = ({ activeTab, setActiveTab }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isDmode = location.pathname.startsWith('/dmode');
 
-  const handleTabClick = (key) => {
+  const handleTabClick = (key: 'videos' | 'goods' | 'gacha') => {
     setActiveTab(key);
-    if (isDmode) {
-      navigate(`/dmode?tab=${key}`);
-    } else {
-      navigate(`/toppage?tab=${key}`);
-    }
+    const basePath = isDmode ? '/dmode' : '/toppage';
+    navigate(`${basePath}?tab=${key}`);
   };
 
   return (

@@ -1,28 +1,50 @@
-// src/pages/user/DmodePage.js
+import React, { useEffect, useRef, useState } from "react";
+import { db, auth } from "../../firebase";
+import {
+  collection,
+  getDocs,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
+import { useAuthState } from "react-firebase-hooks/auth";
+import SidebarLeft from "../../components/common/SidebarLeft";
+import SidebarRight from "../../components/common/SidebarRight";
+import MenuPanel from "../../components/common/MenuPanel";
+import FooterTabMobile from "../../components/common/FooterTabMobile";
+import TabSwitcher from "../../components/common/TabSwitcher";
+import VideoCard from "../../components/video/VideoCard";
+import { getUserVipStatus } from "../../utils/vipUtils";
+import { useMediaQuery } from "react-responsive";
 
-import React, { useEffect, useRef, useState } from 'react';
-import { db } from '../../firebase';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../../firebase';
+type VideoData = {
+  id: string;
+  key: string;
+  title?: string;
+  category?: string;
+  type?: string;
+  tags?: string[];
+  isPublic?: boolean;
+  [key: string]: any;
+};
 
-import SidebarLeft from '../../components/common/SidebarLeft';
-import SidebarRight from '../../components/common/SidebarRight';
-import MenuPanel from '../../components/common/MenuPanel';
-import FooterTabMobile from '../../components/common/FooterTabMobile';
-import TabSwitcher from '../../components/common/TabSwitcher';
-import VideoCard from '../../components/video/VideoCard';
-import { getUserVipStatus } from '../../utils/vipUtils';
-import { useMediaQuery } from 'react-responsive';
+type VipStatus = {
+  rank: string;
+  streak: number;
+  points: number;
+};
 
-const DmodePage = () => {
+const DmodePage: React.FC = () => {
   const [user] = useAuthState(auth);
-  const [vipStatus, setVipStatus] = useState(null);
-  const [videos, setVideos] = useState([]);
-  const [visibleVideos, setVisibleVideos] = useState([]);
-  const [activeTab, setActiveTab] = useState('videos');
-  const observer = useRef();
-  const lastRef = useRef(null);
+  const [vipStatus, setVipStatus] = useState<VipStatus | null>(null);
+  const [videos, setVideos] = useState<VideoData[]>([]);
+  const [visibleVideos, setVisibleVideos] = useState<VideoData[]>([]);
+  const [activeTab, setActiveTab] = useState<"videos" | "goods" | "gacha">("videos");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedTag, setSelectedTag] = useState<string>("");
+
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastRef = useRef<HTMLDivElement | null>(null);
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const isDesktop = useMediaQuery({ minWidth: 768 });
 
@@ -30,7 +52,7 @@ const DmodePage = () => {
     const fetchVip = async () => {
       if (user) {
         const vs = await getUserVipStatus(user.uid);
-        setVipStatus(vs);
+        setVipStatus(vs as VipStatus); // ✅ 型アサーション追加でエラー回避
       }
     };
     fetchVip();
@@ -40,12 +62,15 @@ const DmodePage = () => {
     const fetchVideos = async () => {
       if (!user) return;
       const q = query(
-        collection(db, 'videos'),
-        where('type', '==', 'dmode'),
-        orderBy('createdAt', 'desc')
+        collection(db, "videos"),
+        where("type", "==", "dmode"),
+        orderBy("createdAt", "desc")
       );
       const snap = await getDocs(q);
-      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const list = snap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as VideoData[];
       setVideos(list);
       setVisibleVideos(list.slice(0, 6));
     };
@@ -54,9 +79,9 @@ const DmodePage = () => {
 
   useEffect(() => {
     if (observer.current) observer.current.disconnect();
-    observer.current = new IntersectionObserver(entries => {
+    observer.current = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
-        setVisibleVideos(prev => [
+        setVisibleVideos((prev) => [
           ...prev,
           ...videos.slice(prev.length, prev.length + 6),
         ]);
@@ -66,8 +91,8 @@ const DmodePage = () => {
   }, [visibleVideos, videos]);
 
   const renderTabContent = () => {
-    if (activeTab === 'videos') {
-      if (!vipStatus || vipStatus.rank !== 'VIP12') {
+    if (activeTab === "videos") {
+      if (!vipStatus || vipStatus.rank !== "VIP12") {
         return <p className="text-center p-6 text-red-600">VIPランクが必要です。</p>;
       }
 
@@ -106,7 +131,7 @@ const DmodePage = () => {
               🎖️ VIPランク: <strong>{vipStatus.rank}</strong> / ログイン連続: {vipStatus.streak}日 / ポイント: {vipStatus.points}pt
             </div>
           )}
-          <MenuPanel isDmode />
+          <MenuPanel isDmode={true} /> {/* ✅ props定義追加済み前提 */}
           {isDesktop && (
             <TabSwitcher activeTab={activeTab} setActiveTab={setActiveTab} />
           )}
@@ -114,7 +139,11 @@ const DmodePage = () => {
         </main>
 
         <aside className="hidden lg:block lg:w-1/5 bg-white p-4 h-screen sticky top-0">
-          <SidebarRight />
+          <SidebarRight
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+            onTagSelect={setSelectedTag}
+          />
         </aside>
       </div>
 
@@ -126,5 +155,7 @@ const DmodePage = () => {
 };
 
 export default DmodePage;
+
+
 
 

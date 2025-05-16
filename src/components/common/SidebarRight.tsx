@@ -1,20 +1,37 @@
-import React, { useState } from "react";
+import React, { useState, ChangeEvent } from "react";
 
-const categories = ["AV", "Vlog", "Tutorial", "その他"];
-const tags = ["女子高生","合法jk","jk","幼児体型","幼児服","ロリ","未○年","素人","ハメ撮り","個人撮影","色白","細身","巨乳","パイパン","ガキ","メスガキ","お仕置き","レイプ","中出し","コスプレ","制服","学生","華奢","孕ませ","素人", "巨乳", "個人撮影", "色白", "スレンダー", "ハメ撮り", "無料", "VR"];
+// カテゴリとタグの選択肢（重複を削除・整理済）
+const categories: string[] = ["AV", "Vlog", "Tutorial", "その他"];
+const tags: string[] = [
+  "女子高生", "合法jk", "jk", "幼児体型", "幼児服", "ロリ", "未○年", "素人",
+  "ハメ撮り", "個人撮影", "色白", "細身", "巨乳", "パイパン", "ガキ", "メスガキ",
+  "お仕置き", "レイプ", "中出し", "コスプレ", "制服", "学生", "華奢", "孕ませ",
+  "スレンダー", "無料", "VR"
+];
 
-const SidebarRight = ({ onTagSelect, selectedCategory, setSelectedCategory }) => {
-  const [selectedTag, setSelectedTag] = useState("");
+// Props型定義
+type SidebarRightProps = {
+  onTagSelect?: (tag: string) => void;
+  selectedCategory: string;
+  setSelectedCategory: (category: string) => void;
+};
 
-  const handleTagChange = (e) => {
+const SidebarRight: React.FC<SidebarRightProps> = ({
+  onTagSelect,
+  selectedCategory,
+  setSelectedCategory,
+}) => {
+  const [selectedTag, setSelectedTag] = useState<string>("");
+
+  const handleTagChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setSelectedTag(val);
     if (onTagSelect) onTagSelect(val);
   };
 
-  const handleCategoryChange = (e) => {
+  const handleCategoryChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
-    if (setSelectedCategory) setSelectedCategory(val);
+    setSelectedCategory(val);
   };
 
   return (
@@ -57,3 +74,4 @@ const SidebarRight = ({ onTagSelect, selectedCategory, setSelectedCategory }) =>
 };
 
 export default SidebarRight;
+

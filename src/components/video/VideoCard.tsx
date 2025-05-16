@@ -2,7 +2,20 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { getVideoPlaybackUrl } from "../../utils/videoUtils";
 
-const VideoCard = ({ video }) => {
+// Videoオブジェクトの型定義（必要に応じて拡張可能）
+type VideoData = {
+  id: string;
+  key: string;
+  title?: string;
+  category?: string;
+  tags?: string[];
+};
+
+type VideoCardProps = {
+  video: VideoData;
+};
+
+const VideoCard: React.FC<VideoCardProps> = ({ video }) => {
   const [isHovered, setIsHovered] = useState(false);
   const videoUrl = getVideoPlaybackUrl(video.key);
 
@@ -27,7 +40,7 @@ const VideoCard = ({ video }) => {
         ) : (
           <img
             src="/thumbnail_placeholder.png"
-            alt={video.title}
+            alt={video.title || "動画サムネイル"}
             className="w-full h-full object-cover"
           />
         )}
@@ -67,6 +80,7 @@ const VideoCard = ({ video }) => {
 };
 
 export default VideoCard;
+
 
 
 

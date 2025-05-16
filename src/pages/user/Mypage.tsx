@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, db } from '../../firebase';
+import React, { useEffect, useState } from "react";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth, db } from "../../firebase";
 import {
   doc,
   getDoc,
@@ -8,38 +8,66 @@ import {
   query,
   where,
   getDocs,
-} from 'firebase/firestore';
-import { getUserVipStatus } from '../../utils/vipUtils';
-import { useNavigate } from 'react-router-dom';
-import VideoCard from '../../components/video/VideoCard';
+} from "firebase/firestore";
+import { getUserVipStatus } from "../../utils/vipUtils";
+import { useNavigate } from "react-router-dom";
+import VideoCard from "../../components/video/VideoCard";
 
-const Mypage = () => {
+type VipStatus = {
+  rank: string;
+  points: number;
+  gachaCount: number;
+  totalSpent: number;
+};
+
+type OrderItem = {
+  title?: string;
+  quantity?: number;
+  price?: number;
+};
+
+type Order = {
+  id: string;
+  createdAt?: any;
+  status?: string;
+  items: OrderItem[];
+};
+
+type VideoData = {
+  id: string;
+  key: string;
+  title?: string;
+  category?: string;
+  tags?: string[];
+  [key: string]: any;
+};
+
+const Mypage: React.FC = () => {
   const [user] = useAuthState(auth);
   const navigate = useNavigate();
-  const [isOwner, setIsOwner] = useState(false);
-  const [orders, setOrders] = useState([]);
-  const [loadingOrders, setLoadingOrders] = useState(true);
-  const [vipStatus, setVipStatus] = useState({
-    rank: 'Bronze',
+  const [isOwner, setIsOwner] = useState<boolean>(false);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState<boolean>(true);
+  const [vipStatus, setVipStatus] = useState<VipStatus>({
+    rank: "Bronze",
     points: 0,
     gachaCount: 0,
     totalSpent: 0,
   });
-
-  const [purchasedVideos, setPurchasedVideos] = useState([]);
-  const [loadingVideos, setLoadingVideos] = useState(true);
+  const [purchasedVideos, setPurchasedVideos] = useState<VideoData[]>([]);
+  const [loadingVideos, setLoadingVideos] = useState<boolean>(true);
 
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
       try {
-        const docRef = doc(db, 'users', user.uid);
+        const docRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists() && docSnap.data().isOwner) {
           setIsOwner(true);
         }
       } catch (err) {
-        console.error('データ取得エラー:', err);
+        console.error("データ取得エラー:", err);
       }
     };
     fetchData();
@@ -48,16 +76,15 @@ const Mypage = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       if (!user) return;
-      const q = query(collection(db, 'orders'), where('userId', '==', user.uid));
+      const q = query(collection(db, "orders"), where("userId", "==", user.uid));
       const snapshot = await getDocs(q);
-      const detailedOrders = await Promise.all(
+      const detailedOrders: Order[] = await Promise.all(
         snapshot.docs.map(async (docSnap) => {
           const data = docSnap.data();
-          const items = data.items || [];
           return {
             id: docSnap.id,
             ...data,
-            items,
+            items: data.items || [],
           };
         })
       );
@@ -71,7 +98,7 @@ const Mypage = () => {
     const fetchVip = async () => {
       if (!user) return;
       const vs = await getUserVipStatus(user.uid);
-      setVipStatus(vs);
+      setVipStatus(vs as VipStatus);
     };
     fetchVip();
   }, [user]);
@@ -79,33 +106,31 @@ const Mypage = () => {
   useEffect(() => {
     const fetchPurchasedVideos = async () => {
       if (!user) return;
-
       try {
         const q = query(
-          collection(db, 'purchases'),
-          where('userId', '==', user.uid),
-          where('status', '==', 'paid')
+          collection(db, "purchases"),
+          where("userId", "==", user.uid),
+          where("status", "==", "paid")
         );
         const snap = await getDocs(q);
-        const results = [];
+        const results: VideoData[] = [];
 
         for (const purchase of snap.docs) {
           const { videoId } = purchase.data();
-          const videoRef = doc(db, 'videos', videoId);
+          const videoRef = doc(db, "videos", videoId);
           const videoSnap = await getDoc(videoRef);
           if (videoSnap.exists()) {
-            results.push({ id: videoSnap.id, ...videoSnap.data() });
+            results.push({ id: videoSnap.id, ...videoSnap.data() } as VideoData);
           }
         }
 
         setPurchasedVideos(results);
       } catch (err) {
-        console.error('購入済み動画の取得エラー:', err);
+        console.error("購入済み動画の取得エラー:", err);
       } finally {
         setLoadingVideos(false);
       }
     };
-
     fetchPurchasedVideos();
   }, [user]);
 
@@ -126,18 +151,21 @@ const Mypage = () => {
         <div className="bg-gray-50 p-4 rounded shadow space-y-3">
           <h2 className="text-lg font-semibold mb-2">プロフィール</h2>
           <div className="space-y-1 text-sm text-gray-700">
-            <p><strong>表示名:</strong> {user.displayName || '名無しユーザー'}</p>
-            <p><strong>メール:</strong> {user.email}</p>
+            <p>
+              <strong>表示名:</strong> {user.displayName || "名無しユーザー"}
+            </p>
+            <p>
+              <strong>メール:</strong> {user.email}
+            </p>
             {isOwner && (
               <p className="text-pink-600 font-semibold">
                 管理者アカウント（isOwner = true）
               </p>
             )}
           </div>
-
           {isOwner && (
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate("/dashboard")}
               className="mt-3 inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
             >
               管理画面へ
@@ -171,16 +199,18 @@ const Mypage = () => {
             <p className="text-gray-500">購入履歴がありません。</p>
           ) : (
             <ul className="space-y-4 text-sm text-gray-700">
-              {orders.map(order => (
+              {orders.map((order) => (
                 <li key={order.id} className="border p-3 rounded bg-white">
                   <p className="font-semibold mb-1">
-                    注文日時: {order.createdAt?.toDate().toLocaleString() || '不明'}
+                    注文日時: {order.createdAt?.toDate().toLocaleString() || "不明"}
                   </p>
                   <p className="text-gray-600 mb-1">ステータス: {order.status}</p>
                   <div className="space-y-1">
                     {order.items.map((item, i) => (
                       <div key={i} className="flex justify-between">
-                        <span>{item.title || '商品名不明'} × {item.quantity || 1}</span>
+                        <span>
+                          {item.title || "商品名不明"} × {item.quantity || 1}
+                        </span>
                         <span>¥{item.price}</span>
                       </div>
                     ))}
@@ -212,4 +242,5 @@ const Mypage = () => {
 };
 
 export default Mypage;
+
 

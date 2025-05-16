@@ -3,19 +3,28 @@ import { useParams } from "react-router-dom";
 import { db, auth } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
 
-const PurchasePage = () => {
-  const { id } = useParams();
-  const [video, setVideo] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+type VideoData = {
+  id: string;
+  title?: string;
+  category?: string;
+  type?: string;
+  [key: string]: any;
+};
+
+const PurchasePage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const [video, setVideo] = useState<VideoData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
     const fetchVideo = async () => {
+      if (!id) return;
       try {
         const ref = doc(db, "videos", id);
         const snap = await getDoc(ref);
         if (snap.exists()) {
-          setVideo({ id: snap.id, ...snap.data() });
+          setVideo({ id: snap.id, ...snap.data() } as VideoData);
         } else {
           setError("動画が見つかりませんでした");
         }
@@ -31,7 +40,7 @@ const PurchasePage = () => {
 
   const handleStripeCheckout = async () => {
     const user = auth.currentUser;
-    if (!user) {
+    if (!user || !video) {
       alert("ログインが必要です");
       return;
     }
@@ -62,6 +71,7 @@ const PurchasePage = () => {
 
   if (loading) return <div className="p-4">読み込み中...</div>;
   if (error) return <div className="p-4 text-red-600">{error}</div>;
+  if (!video) return null; // ✅ nullチェックで型安全確保
 
   return (
     <div className="p-6 max-w-xl mx-auto bg-white rounded shadow space-y-4">

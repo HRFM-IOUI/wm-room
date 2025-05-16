@@ -1,26 +1,26 @@
 import React from "react";
-import { signInWithPopup } from "firebase/auth";
+import { signInWithPopup, UserCredential } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { auth, provider } from "../../firebase";
 import SectionBox from "../../components/ui/SectionBox";
 import { createFreeSubscription } from "../../utils/stripeUtils";
 
-const Signup = () => {
+const Signup: React.FC = () => {
   const navigate = useNavigate();
 
   const handleGoogleSignup = async () => {
     try {
-      const result = await signInWithPopup(auth, provider);
+      const result: UserCredential = await signInWithPopup(auth, provider);
       const user = result.user;
       console.log("Google登録成功:", user);
 
-      // サブスク作成処理を実行（内部で Stripe Checkout にリダイレクト）
-      await createFreeSubscription(user.uid, user.email);
+      // サブスク作成処理を実行（Stripe Checkout にリダイレクト）
+      await createFreeSubscription(user.uid, user.email ?? "");
 
-      // ※redirectToCheckout が発火するため navigate は通常不要ですが、保険で設置
-      setTimeout(() => navigate("/thankyou?uid=" + user.uid), 5000);
-    } catch (error) {
-      alert("Google登録に失敗しました: " + error.message);
+      // 通常 navigate は不要だが、保険として5秒後に遷移
+      setTimeout(() => navigate(`/thankyou?uid=${user.uid}`), 5000);
+    } catch (error: any) {
+      alert("Google登録に失敗しました: " + (error?.message || "エラーが発生しました"));
     }
   };
 

@@ -1,13 +1,18 @@
-// src/components/ui/SidebarLeft.js
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { User, Gamepad2, LogOut } from "lucide-react"; // ← ✅ Home, Search を削除
+import { User, Gamepad2, LogOut } from "lucide-react";
 import { auth } from "../../firebase";
 
-const SidebarLeft = () => {
+type NavItem = {
+  path: string;
+  label: string;
+  icon: React.ReactNode; // ← 修正
+};
+
+const SidebarLeft: React.FC = () => {
   const location = useLocation();
 
-  const navItems = [
+  const navItems: NavItem[] = [
     { path: "/mypage", label: "マイページ", icon: <User size={20} /> },
     { path: "/gacha-select", label: "ガチャ", icon: <Gamepad2 size={20} /> },
   ];

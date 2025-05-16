@@ -1,13 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { PlaySquare, Package, Gift } from 'lucide-react';
+import { PlaySquare, Package, Gift, LucideIcon } from 'lucide-react';
 
-const FooterTabMobile = ({ activeTab, setActiveTab }) => {
+// タブキーの型
+type TabKey = 'videos' | 'goods' | 'gacha';
+
+// Props型
+type FooterTabMobileProps = {
+  activeTab: TabKey;
+  setActiveTab: (tab: TabKey) => void;
+};
+
+// タブ定義型
+type Tab = {
+  key: TabKey;
+  label: string;
+  icon: LucideIcon;
+};
+
+const FooterTabMobile: React.FC<FooterTabMobileProps> = ({ activeTab, setActiveTab }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const isDmode = location.pathname.startsWith('/dmode');
-  const tabs = [
+  const tabs: Tab[] = [
     { key: 'videos', label: isDmode ? 'D-mode' : 'メディア', icon: PlaySquare },
     { key: 'goods', label: 'グッズ', icon: Package },
     { key: 'gacha', label: 'ガチャ', icon: Gift },
@@ -16,7 +32,7 @@ const FooterTabMobile = ({ activeTab, setActiveTab }) => {
   const [isScrolling, setIsScrolling] = useState(false);
 
   useEffect(() => {
-    let timeout;
+    let timeout: ReturnType<typeof setTimeout>;
     const handleScroll = () => {
       setIsScrolling(true);
       clearTimeout(timeout);
@@ -30,13 +46,10 @@ const FooterTabMobile = ({ activeTab, setActiveTab }) => {
     };
   }, []);
 
-  const handleTabClick = (key) => {
+  const handleTabClick = (key: TabKey) => {
     setActiveTab(key);
-    if (isDmode) {
-      navigate(`/dmode?tab=${key}`);
-    } else {
-      navigate(`/toppage?tab=${key}`);
-    }
+    const path = isDmode ? `/dmode?tab=${key}` : `/toppage?tab=${key}`;
+    navigate(path);
   };
 
   return (
@@ -67,3 +80,4 @@ const FooterTabMobile = ({ activeTab, setActiveTab }) => {
 };
 
 export default FooterTabMobile;
+
