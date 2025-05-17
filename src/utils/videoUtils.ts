@@ -29,6 +29,7 @@ interface RegisterVideoParams {
 
 /**
  * HLS または MP4 再生用の署名付きURLを生成（CloudFront経由）
+ * 例：IMG_8552.MOV → https://xxxxx.cloudfront.net/converted-IMG_8552/IMG_8552.m3u8
  */
 export const getVideoPlaybackUrl = (
   key: string,
@@ -37,10 +38,17 @@ export const getVideoPlaybackUrl = (
   const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN!;
   if (!CLOUDFRONT_DOMAIN || !key) return null;
 
-  const formattedKey = format === "hls" ? `${key}/index.m3u8` : key;
-  const fullUrl = `https://${CLOUDFRONT_DOMAIN}/${formattedKey}`;
-  console.log("✅ 再生URL生成:", fullUrl);
-  return fullUrl;
+  if (format === "hls") {
+    const baseKey = key.replace(/\.\w+$/, ""); // 拡張子除去 → IMG_8552
+    const m3u8File = `${baseKey}.m3u8`;         // IMG_8552.m3u8
+    const path = `converted-${baseKey}/${m3u8File}`; // converted-IMG_8552/IMG_8552.m3u8
+    const fullUrl = `https://${CLOUDFRONT_DOMAIN}/${path}`;
+    console.log("✅ 正常な再生URL:", fullUrl);
+    return fullUrl;
+  }
+
+  // mp4など別形式
+  return `https://${CLOUDFRONT_DOMAIN}/${key}`;
 };
 
 /**
@@ -96,20 +104,22 @@ export const registerUploadedVideo = async ({
 };
 
 /**
- * 動画変換後の出力パス（例: HLS）を Firestore に保存（/index.m3u8を含むCloudFront URL形式）
+ * 動画変換後の出力パス（例: HLS）を Firestore に保存
+ * 例: "converted-IMG_8552/IMG_8552.m3u8"
  */
 export const saveConvertedVideoUrl = async (
   videoId: string,
   outputPath: string
 ): Promise<void> => {
   const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN!;
-  const playbackUrl = `https://${CLOUDFRONT_DOMAIN}/${outputPath}/index.m3u8`;
+  const playbackUrl = `https://${CLOUDFRONT_DOMAIN}/${outputPath}`;
 
   await updateDoc(doc(db, "videos", videoId), {
     playbackUrl,
     status: "converted",
   });
 };
+
 
 
 
