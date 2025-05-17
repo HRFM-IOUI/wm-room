@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 
-// Shaka Player はモジュールとして正しく型定義されていないため、requireで動的に読み込む
 let shaka: any;
 if (typeof window !== 'undefined') {
   shaka = require('shaka-player/dist/shaka-player.compiled.js');
@@ -23,9 +22,16 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
       console.error('Shaka error', event);
     });
 
-    player.load(manifestUrl).catch((err: any) => {
-      console.error('Shaka load error', err);
-    });
+    player.load(manifestUrl)
+      .then(() => {
+        console.log('Shaka load success, trying to play...');
+        video.play().catch((err: any) => {
+          console.warn('AutoPlay or manual play failed:', err);
+        });
+      })
+      .catch((err: any) => {
+        console.error('Shaka load error', err);
+      });
 
     return () => {
       player.destroy();
@@ -44,6 +50,7 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
 };
 
 export default ShakaPlayerComponent;
+
 
 
 
