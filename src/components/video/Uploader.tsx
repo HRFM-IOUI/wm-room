@@ -8,9 +8,7 @@ import { requestVideoConversion } from '../../utils/api';
 const API_BASE = "https://cf-worker-upload.ik39-10vevic.workers.dev";
 const PART_SIZE = 10 * 1024 * 1024;
 
-const CATEGORIES: string[] = [
-  "その他"
-];
+const CATEGORIES: string[] = ["その他"];
 
 const Uploader: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -31,10 +29,14 @@ const Uploader: React.FC = () => {
     setProgress(0);
 
     try {
+      // Firestore登録は後回しにし、まず videoId を仮に生成（UUIDでも良いが今回は upload 後で取得）
+      // initiate → upload → complete を先にやる
+      const videoId = crypto.randomUUID();
+
       const resInit = await fetch(`${API_BASE}/initiate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName: file.name, fileType: file.type }),
+        body: JSON.stringify({ fileName: file.name, fileType: file.type, videoId }),
       });
 
       const { uploadId, key } = await resInit.json();
@@ -74,21 +76,23 @@ const Uploader: React.FC = () => {
         body: JSON.stringify({ key, uploadId, parts }),
       });
 
+      // 🔥 S3アップロード完了後に Firestore に登録（key を含める）
       const docRef = await registerUploadedVideo({
         title: file.name,
-        key,
+        key, // ← 必須プロパティ
         fileType: file.type,
         category,
         tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean),
       });
+      const finalVideoId = docRef.id;
+      console.log("📄 登録済みFirestore ID:", finalVideoId);
 
-      console.log("📄 登録済みFirestore ID:", docRef.id);
-
+      // MediaConvert変換（Cloudflare Worker 経由）
       const outputPath = await requestVideoConversion(key);
       console.log("🧩 WorkerからのoutputPath:", outputPath);
 
-      await saveConvertedVideoUrl(docRef.id, outputPath);
-      console.log("✅ Firestoreに再生URLを保存:", docRef.id, outputPath);
+      await saveConvertedVideoUrl(finalVideoId, outputPath);
+      console.log("✅ Firestoreに再生URLを保存:", finalVideoId, outputPath);
 
       setStatus("✅ アップロード＆変換完了！");
       setFile(null);
