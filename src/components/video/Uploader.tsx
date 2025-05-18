@@ -9,10 +9,7 @@ const API_BASE = "https://cf-worker-upload.ik39-10vevic.workers.dev";
 const PART_SIZE = 10 * 1024 * 1024;
 
 const CATEGORIES: string[] = [
-  "女子高生", "合法jk", "jk", "幼児体型", "幼児服", "ロリ", "未○年",
-  "素人", "ハメ撮り", "個人撮影", "色白", "細身", "巨乳", "パイパン",
-  "ガキ", "メスガキ", "お仕置き", "レイプ", "中出し", "コスプレ",
-  "制服", "学生", "華奢", "孕ませ","その他"
+  "その他"
 ];
 
 const Uploader: React.FC = () => {
@@ -85,14 +82,19 @@ const Uploader: React.FC = () => {
         tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean),
       });
 
+      console.log("📄 登録済みFirestore ID:", docRef.id);
+
       const outputPath = await requestVideoConversion(key);
+      console.log("🧩 WorkerからのoutputPath:", outputPath);
+
       await saveConvertedVideoUrl(docRef.id, outputPath);
+      console.log("✅ Firestoreに再生URLを保存:", docRef.id, outputPath);
 
       setStatus("✅ アップロード＆変換完了！");
       setFile(null);
       setTagsInput('');
     } catch (err: any) {
-      console.error(err);
+      console.error("❌ エラー:", err);
       setStatus("❌ アップロード失敗: " + (err?.message || "不明なエラー"));
     }
   };
@@ -155,19 +157,3 @@ const Uploader: React.FC = () => {
 };
 
 export default Uploader;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
