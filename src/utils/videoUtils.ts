@@ -26,14 +26,14 @@ interface RegisterVideoParams {
   tags?: string[];
 }
 
-// .env から取得（.replace()で \n を改行に変換）
+// .env から取得（\n を改行に変換）
 const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN!;
 const CLOUDFRONT_KEY_PAIR_ID = process.env.REACT_APP_CLOUDFRONT_KEY_PAIR_ID!;
 const CLOUDFRONT_PRIVATE_KEY = process.env.REACT_APP_CLOUDFRONT_PRIVATE_KEY!.replace(/\\n/g, '\n');
 
 /**
- * CloudFront署名付きURLを生成（HLS or MP4）
- * @param key - Firestoreに保存された video.key
+ * CloudFront署名付き再生URLを生成（HLS or MP4）
+ * @param key - Firestoreに保存された video.key（例: videos/{videoId}/fileName）
  * @param format - 'hls' | 'mp4'
  * @param expiresInSec - 有効期限（秒）
  */
@@ -44,11 +44,16 @@ export const getVideoPlaybackUrl = (
 ): string | null => {
   if (!CLOUDFRONT_DOMAIN || !key) return null;
 
-  const baseKey = key.replace(/\.\w+$/, ""); // 例: IMG_8552.MOV → IMG_8552
+  const parts = key.split("/");
+  if (parts.length < 3) return null;
+
+  const videoId = parts[1]; // videos/{videoId}/{fileName}
+  const fileName = parts[2].replace(/\.\w+$/, ""); // 拡張子除去
+
   const path =
     format === "hls"
-      ? `/converted-${baseKey}/${baseKey}_hls720.m3u8`
-      : `/${key}`; // MP4なら直接オリジナルkeyで
+      ? `/converted/videos/${videoId}/${fileName}/${fileName}_hls720.m3u8`
+      : `/${key}`; // MP4再生（オリジナルkey）
 
   const url = `https://${CLOUDFRONT_DOMAIN}${path}`;
 
