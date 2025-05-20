@@ -24,6 +24,7 @@
     "shaka-player": "^4.14.12",
     "stream-browserify": "^3.0.0",
     "tus-js-client": "^4.3.1",
+    "vm-browserify": "^1.1.2",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
