@@ -1,11 +1,11 @@
 /**
  * ✅ Cloudflare Worker 経由で動画変換をリクエスト
  * @param key アップロードされた動画のキー（S3パス相当）
- * @returns HLS 変換後の出力パス（例: "converted/abc123/playlist.m3u8"）
+ * @returns 署名付き再生URL（CloudFront経由）
  */
 export const requestVideoConversion = async (key: string): Promise<string> => {
   const res = await fetch(
-    "https://cf-worker-upload-production.ik39-10vevic.workers.dev/convert-video", // ✅ 本番WorkerのURLに
+    "https://cf-worker-upload-production.ik39-10vevic.workers.dev/convert-video",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -13,11 +13,16 @@ export const requestVideoConversion = async (key: string): Promise<string> => {
     }
   );
 
-  const data: { outputPath?: string; error?: string } = await res.json();
+  const data: {
+    jobId?: string;
+    outputPath?: string;
+    playbackUrl?: string;
+    error?: string;
+  } = await res.json();
 
-  if (!res.ok || !data.outputPath) {
+  if (!res.ok || !data.playbackUrl) {
     throw new Error(data.error || "変換ジョブ作成に失敗しました");
   }
 
-  return data.outputPath;
+  return data.playbackUrl;
 };
