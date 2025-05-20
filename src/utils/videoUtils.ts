@@ -26,16 +26,16 @@ interface RegisterVideoParams {
   tags?: string[];
 }
 
-// .env から CloudFront署名設定を取得（改行コードの補正も含む）
+// .env から CloudFront署名設定を取得（\nの復元含む）
 const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN!;
 const CLOUDFRONT_KEY_PAIR_ID = process.env.REACT_APP_CLOUDFRONT_KEY_PAIR_ID!;
 const CLOUDFRONT_PRIVATE_KEY = process.env.REACT_APP_CLOUDFRONT_PRIVATE_KEY!.replace(/\\n/g, '\n');
 
 /**
- * CloudFront署名付き再生URLを生成（HLS or MP4）
- * @param key Firestoreに保存された video.key（例: videos/{videoId}/fileName）
- * @param format 再生フォーマット ('hls' | 'mp4')
- * @param expiresInSec 有効期限（デフォルト3600秒）
+ * CloudFront署名付き再生URLを生成（HLSまたはMP4）
+ * @param key Firestore保存のvideo.key（例: videos/{videoId}/fileName）
+ * @param format "hls" | "mp4"
+ * @param expiresInSec 有効期限（秒）
  */
 export const getVideoPlaybackUrl = (
   key: string,
@@ -48,12 +48,12 @@ export const getVideoPlaybackUrl = (
   if (parts.length < 3) return null;
 
   const videoId = parts[1];
-  const fileNameWithoutExt = parts[2].replace(/\.\w+$/, ""); // 拡張子除去
+  const fileName = parts[2].replace(/\.\w+$/, "");
 
   const path =
     format === "hls"
-      ? `/converted-videos/${videoId}/${fileNameWithoutExt}_hls720.m3u8`
-      : `/${key}`;
+      ? `/converted/${key.replace(/\.\w+$/, '')}.m3u8`
+      : `/${key}`; // オリジナルファイル（MP4）
 
   const url = `https://${CLOUDFRONT_DOMAIN}${path}`;
 
@@ -66,7 +66,7 @@ export const getVideoPlaybackUrl = (
 };
 
 /**
- * 現在ログイン中のユーザーが VIP12 かどうかを判定
+ * 現在のログインユーザーが VIP12 かを判定
  */
 export const isVipUser = async (): Promise<boolean> => {
   const user = auth.currentUser;
@@ -77,7 +77,7 @@ export const isVipUser = async (): Promise<boolean> => {
 };
 
 /**
- * 指定された videoId の動画を購入済みかどうか判定
+ * ユーザーが指定された動画を購入済みかどうかを判定
  */
 export const hasPurchasedVideo = async (
   videoId: string
@@ -90,7 +90,7 @@ export const hasPurchasedVideo = async (
 };
 
 /**
- * 新規アップロード動画を Firestore に登録
+ * Firestore に新しい動画ドキュメントを登録
  */
 export const registerUploadedVideo = async ({
   title,
