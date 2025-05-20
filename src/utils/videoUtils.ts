@@ -47,13 +47,12 @@ export const getVideoPlaybackUrl = (
   const parts = key.split("/");
   if (parts.length < 3) return null;
 
-  const videoId = parts[1];
-  const fileName = parts[2].replace(/\.\w+$/, "");
+  const basePath = key.replace(/\.\w+$/, ""); // 拡張子除去
 
   const path =
     format === "hls"
-      ? `/converted/${key.replace(/\.\w+$/, '')}.m3u8`
-      : `/${key}`; // オリジナルファイル（MP4）
+      ? `/converted/${basePath}.m3u8` // e.g., converted/videos/{id}/file.m3u8
+      : `/${key}`;
 
   const url = `https://${CLOUDFRONT_DOMAIN}${path}`;
 
