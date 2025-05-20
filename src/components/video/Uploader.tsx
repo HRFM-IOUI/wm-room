@@ -1,9 +1,6 @@
-import React, { useState, ChangeEvent } from 'react';
-import {
-  registerUploadedVideo,
-  saveConvertedVideoUrl,
-} from '../../utils/videoUtils';
-import { requestVideoConversion } from '../../utils/api';
+import React, { useState, ChangeEvent } from "react";
+import { registerUploadedVideo } from "../../utils/videoUtils";
+import { requestVideoConversion } from "../../utils/api";
 
 const API_BASE = "https://cf-worker-upload-production.ik39-10vevic.workers.dev";
 const PART_SIZE = 10 * 1024 * 1024;
@@ -29,14 +26,16 @@ const Uploader: React.FC = () => {
     setProgress(0);
 
     try {
-      // Firestore登録は後回しにし、まず videoId を仮に生成（UUIDでも良いが今回は upload 後で取得）
-      // initiate → upload → complete を先にやる
       const videoId = crypto.randomUUID();
 
       const resInit = await fetch(`${API_BASE}/initiate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName: file.name, fileType: file.type, videoId }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          videoId,
+        }),
       });
 
       const { uploadId, key } = await resInit.json();
@@ -51,52 +50,46 @@ const Uploader: React.FC = () => {
         const blob = file.slice(start, end);
 
         const resPart = await fetch(`${API_BASE}/part`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ key, uploadId, partNumber }),
         });
 
         const { signedUrl } = await resPart.json();
+
         const uploadRes = await fetch(signedUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type },
+          method: "PUT",
+          headers: { "Content-Type": file.type },
           body: blob,
         });
 
-        const eTag = uploadRes.headers.get('ETag');
+        const eTag = uploadRes.headers.get("ETag");
         if (!eTag) throw new Error(`ETagが取得できません（Part ${partNumber}）`);
 
-        parts.push({ ETag: eTag.replaceAll('"', ''), PartNumber: partNumber });
+        parts.push({ ETag: eTag.replaceAll('"', ""), PartNumber: partNumber });
         setProgress(Math.round((partNumber / partCount) * 100));
       }
 
       await fetch(`${API_BASE}/complete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key, uploadId, parts }),
       });
 
-      // 🔥 S3アップロード完了後に Firestore に登録（key を含める）
       const docRef = await registerUploadedVideo({
         title: file.name,
-        key, // ← 必須プロパティ
+        key,
         fileType: file.type,
         category,
-        tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean),
+        tags: tagsInput.split(",").map((t) => t.trim()).filter(Boolean),
       });
-      const finalVideoId = docRef.id;
-      console.log("📄 登録済みFirestore ID:", finalVideoId);
 
-      // MediaConvert変換（Cloudflare Worker 経由）
-      const outputPath = await requestVideoConversion(key);
-      console.log("🧩 WorkerからのoutputPath:", outputPath);
+      console.log("📄 Firestore登録:", docRef.id);
 
-      await saveConvertedVideoUrl(finalVideoId, outputPath);
-      console.log("✅ Firestoreに再生URLを保存:", finalVideoId, outputPath);
-
+      await requestVideoConversion(key);
       setStatus("✅ アップロード＆変換完了！");
       setFile(null);
-      setTagsInput('');
+      setTagsInput("");
     } catch (err: any) {
       console.error("❌ エラー:", err);
       setStatus("❌ アップロード失敗: " + (err?.message || "不明なエラー"));
@@ -106,13 +99,14 @@ const Uploader: React.FC = () => {
   return (
     <div className="p-6 bg-white rounded-xl shadow space-y-4 border">
       <h2 className="text-lg font-bold text-gray-800">📤 新規動画アップロード</h2>
+
       <input
         type="file"
         accept="video/*"
         onChange={handleFileChange}
         className="w-full p-2 border rounded"
       />
-      {file && <p className="text-sm text-gray-600 mt-1">🎬 選択ファイル: {file.name}</p>}
+      {file && <p className="text-sm text-gray-600 mt-1">🎬 {file.name}</p>}
 
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-1">カテゴリ</label>

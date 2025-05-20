@@ -1,4 +1,3 @@
-// src/utils/videoUtils.ts
 import { auth, db } from "../firebase";
 import {
   getDoc,
@@ -10,6 +9,7 @@ import {
   DocumentReference,
 } from "firebase/firestore";
 import { getUserVipStatus } from "./vipUtils";
+import { getSignedUrl } from "@aws-sdk/cloudfront-signer";
 
 interface VipStatus {
   rank: string;
@@ -27,28 +27,38 @@ interface RegisterVideoParams {
   tags?: string[];
 }
 
+// .env から取得（.replace()で \n を改行に変換）
+const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN!;
+const CLOUDFRONT_KEY_PAIR_ID = process.env.REACT_APP_CLOUDFRONT_KEY_PAIR_ID!;
+const CLOUDFRONT_PRIVATE_KEY = process.env.REACT_APP_CLOUDFRONT_PRIVATE_KEY!.replace(/\\n/g, '\n');
+
 /**
- * HLS または MP4 再生用の署名付きURLを生成（CloudFront経由）
- * 例：IMG_8552.MOV → https://xxxxx.cloudfront.net/converted-IMG_8552/IMG_8552_hls720.m3u8
+ * CloudFront署名付きURLを生成（HLS or MP4）
+ * @param key - Firestoreに保存された video.key
+ * @param format - 'hls' | 'mp4'
+ * @param expiresInSec - 有効期限（秒）
  */
 export const getVideoPlaybackUrl = (
   key: string,
-  format: "hls" | "mp4" = "hls"
+  format: "hls" | "mp4" = "hls",
+  expiresInSec = 3600
 ): string | null => {
-  const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN!;
   if (!CLOUDFRONT_DOMAIN || !key) return null;
 
-  if (format === "hls") {
-    const baseKey = key.replace(/\.\w+$/, ""); // 拡張子除去 → IMG_8552
-    const m3u8File = `${baseKey}_hls720.m3u8`; // ← MediaConvertの出力と一致
-    const path = `converted-${baseKey}/${m3u8File}`;
-    const fullUrl = `https://${CLOUDFRONT_DOMAIN}/${path}`;
-    console.log("✅ 正常な再生URL:", fullUrl);
-    return fullUrl;
-  }
+  const baseKey = key.replace(/\.\w+$/, ""); // 例: IMG_8552.MOV → IMG_8552
+  const path =
+    format === "hls"
+      ? `/converted-${baseKey}/${baseKey}_hls720.m3u8`
+      : `/${key}`; // MP4なら直接オリジナルkeyで
 
-  // mp4など別形式
-  return `https://${CLOUDFRONT_DOMAIN}/${key}`;
+  const url = `https://${CLOUDFRONT_DOMAIN}${path}`;
+
+  return getSignedUrl({
+    url,
+    keyPairId: CLOUDFRONT_KEY_PAIR_ID,
+    privateKey: CLOUDFRONT_PRIVATE_KEY,
+    dateLessThan: new Date(Date.now() + expiresInSec * 1000),
+  });
 };
 
 /**
@@ -101,21 +111,4 @@ export const registerUploadedVideo = async ({
   });
 
   return newDoc;
-};
-
-/**
- * 動画変換後の出力パス（例: HLS）を Firestore に保存
- * 例: "converted-IMG_8552/IMG_8552_hls720.m3u8"
- */
-export const saveConvertedVideoUrl = async (
-  videoId: string,
-  outputPath: string
-): Promise<void> => {
-  const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN!;
-  const playbackUrl = `https://${CLOUDFRONT_DOMAIN}/${outputPath}`;
-
-  await updateDoc(doc(db, "videos", videoId), {
-    playbackUrl,
-    status: "converted",
-  });
 };
