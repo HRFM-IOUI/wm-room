@@ -9,7 +9,8 @@ import {
   doc,
 } from "firebase/firestore";
 import { auth, db } from "../../firebase";
-import VideoPlayer from "../../components/video/VideoPlayer";
+import ShakaPlayerComponent from "../../components/video/ShakaPlayerComponent";
+import { getVideoPlaybackUrl } from "../../utils/videoUtils";
 import Uploader from "../../components/video/Uploader";
 
 type VideoData = {
@@ -90,31 +91,38 @@ const Dashboard: React.FC = () => {
         {filteredVideos.length === 0 ? (
           <p>動画が見つかりません。</p>
         ) : (
-          filteredVideos.map((video) => (
-            <div
-              key={video.id}
-              className="p-4 border rounded-xl shadow-sm bg-white space-y-2"
-            >
-              <p className="font-semibold">{video.title}</p>
-              <VideoPlayer video={video} />
-              <div className="flex gap-4 mt-2">
-                <button
-                  onClick={() => togglePublic(video)}
-                  className={`px-3 py-1 rounded ${
-                    video.isPublic ? "bg-green-500" : "bg-gray-400"
-                  } text-white`}
-                >
-                  {video.isPublic ? "公開中" : "非公開"}
-                </button>
-                <button
-                  onClick={() => handleDelete(video)}
-                  className="bg-red-500 text-white px-3 py-1 rounded"
-                >
-                  削除
-                </button>
+          filteredVideos.map((video) => {
+            const playbackUrl = getVideoPlaybackUrl(video.key, "hls");
+            return (
+              <div
+                key={video.id}
+                className="p-4 border rounded-xl shadow-sm bg-white space-y-2"
+              >
+                <p className="font-semibold">{video.title}</p>
+                {playbackUrl ? (
+                  <ShakaPlayerComponent manifestUrl={playbackUrl} />
+                ) : (
+                  <p className="text-red-500">再生URLの生成に失敗しました。</p>
+                )}
+                <div className="flex gap-4 mt-2">
+                  <button
+                    onClick={() => togglePublic(video)}
+                    className={`px-3 py-1 rounded ${
+                      video.isPublic ? "bg-green-500" : "bg-gray-400"
+                    } text-white`}
+                  >
+                    {video.isPublic ? "公開中" : "非公開"}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(video)}
+                    className="bg-red-500 text-white px-3 py-1 rounded"
+                  >
+                    削除
+                  </button>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
