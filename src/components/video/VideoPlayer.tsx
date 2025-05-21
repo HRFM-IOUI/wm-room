@@ -16,6 +16,8 @@ const VideoPlayer: React.FC<Props> = ({ video }) => {
 
   useEffect(() => {
     const playbackUrl = getVideoPlaybackUrl(video.key, 'hls');
+    console.log('🔍 再生URL:', playbackUrl); // ← 追加済み！
+
     if (!playbackUrl || !videoRef.current) return;
 
     if (Hls.isSupported()) {
