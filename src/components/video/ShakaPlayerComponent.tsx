@@ -16,6 +16,13 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
     const video = videoRef.current;
     if (!video || !manifestUrl || !shaka) return;
 
+    shaka.polyfill.installAll();
+
+    if (!shaka.Player.isBrowserSupported()) {
+      console.error('Shaka Player is not supported in this browser.');
+      return;
+    }
+
     const player = new shaka.Player(video);
 
     player.addEventListener('error', (event: Event) => {
@@ -50,11 +57,3 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
 };
 
 export default ShakaPlayerComponent;
-
-
-
-
-
-
-
-
