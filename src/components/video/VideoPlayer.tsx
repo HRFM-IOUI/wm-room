@@ -12,14 +12,7 @@ type VideoPlayerProps = {
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ video }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-
-  // 署名付きCloudFront URLを生成
   const videoUrl = video?.key ? getVideoPlaybackUrl(video.key, 'hls') : undefined;
-
-  // ✅ 再生URLをログ出力
-  useEffect(() => {
-    console.log('🎬 再生URL:', videoUrl);
-  }, [videoUrl]);
 
   useEffect(() => {
     const videoElement = videoRef.current;
