@@ -1,3 +1,4 @@
+// 差し替え後の完全版 videoUtils.ts
 import { auth, db } from "../firebase";
 import {
   getDoc,
@@ -26,16 +27,14 @@ interface RegisterVideoParams {
   tags?: string[];
 }
 
-// .env から CloudFront署名設定を取得（\nの復元含む）
+// CloudFront署名設定
 const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN!;
 const CLOUDFRONT_KEY_PAIR_ID = process.env.REACT_APP_CLOUDFRONT_KEY_PAIR_ID!;
-const CLOUDFRONT_PRIVATE_KEY = process.env.REACT_APP_CLOUDFRONT_PRIVATE_KEY!.replace(/\\n/g, '\n');
+const CLOUDFRONT_PRIVATE_KEY = process.env.REACT_APP_CLOUDFRONT_PRIVATE_KEY!.replace(/\\n/g, "\n");
 
 /**
- * CloudFront署名付き再生URLを生成（HLSまたはMP4）
- * @param key Firestoreに保存された video.key（例: videos/{videoId}/IMG_8552.MOV）
- * @param format "hls" | "mp4"
- * @param expiresInSec 有効期限（秒）
+ * CloudFront署名付き再生URLを生成（HLS or MP4）
+ * 例: videos/abc123/IMG_8552.MOV → /converted/videos/abc123/IMG_8552_hls.m3u8
  */
 export const getVideoPlaybackUrl = (
   key: string,
@@ -44,13 +43,14 @@ export const getVideoPlaybackUrl = (
 ): string | null => {
   if (!CLOUDFRONT_DOMAIN || !key) return null;
 
-  // 例: videos/abc123/IMG_8552.MOV → basename: IMG_8552
-  const fileName = key.split("/").pop()?.split(".")[0]; // IMG_8552
-  const basePath = key.replace(/\.\w+$/, ""); // videos/abc123/IMG_8552
+  const parts = key.split("/");
+  const fileNameWithExt = parts.pop() || "";
+  const fileBaseName = fileNameWithExt.split(".")[0];
+  const videoId = parts[1]; // videos/{videoId}/{fileName} の想定
 
   const path =
     format === "hls"
-      ? `/converted/${basePath}/${fileName}_hls.m3u8`
+      ? `/converted/videos/${videoId}/${fileBaseName}_hls.m3u8`
       : `/${key}`;
 
   const url = `https://${CLOUDFRONT_DOMAIN}${path}`;
@@ -63,33 +63,20 @@ export const getVideoPlaybackUrl = (
   });
 };
 
-/**
- * 現在のログインユーザーが VIP12 かを判定
- */
 export const isVipUser = async (): Promise<boolean> => {
   const user = auth.currentUser;
   if (!user) return false;
-
   const vipStatus = (await getUserVipStatus(user.uid)) as VipStatus;
   return vipStatus.rank === "VIP12";
 };
 
-/**
- * ユーザーが指定された動画を購入済みかどうかを判定
- */
-export const hasPurchasedVideo = async (
-  videoId: string
-): Promise<boolean> => {
+export const hasPurchasedVideo = async (videoId: string): Promise<boolean> => {
   const user = auth.currentUser;
   if (!user) return false;
-
   const snap = await getDoc(doc(db, "purchases", `${user.uid}_${videoId}`));
   return snap.exists();
 };
 
-/**
- * Firestore に新しい動画ドキュメントを登録
- */
 export const registerUploadedVideo = async ({
   title,
   key,
@@ -101,7 +88,7 @@ export const registerUploadedVideo = async ({
   if (!user) throw new Error("ログインが必要です");
 
   const videosRef = collection(db, "videos");
-  const newDoc = await addDoc(videosRef, {
+  return await addDoc(videosRef, {
     title,
     key,
     fileType,
@@ -111,6 +98,4 @@ export const registerUploadedVideo = async ({
     createdAt: serverTimestamp(),
     status: "public",
   });
-
-  return newDoc;
 };

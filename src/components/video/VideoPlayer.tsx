@@ -2,65 +2,41 @@ import React, { useEffect, useRef } from 'react';
 import Hls from 'hls.js';
 import { getVideoPlaybackUrl } from '../../utils/videoUtils';
 
-type VideoData = {
-  key?: string;
-};
+interface VideoData {
+  key: string;
+  [key: string]: any;
+}
 
-type VideoPlayerProps = {
+interface Props {
   video: VideoData;
-};
+}
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ video }) => {
+const VideoPlayer: React.FC<Props> = ({ video }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const videoUrl = video?.key ? getVideoPlaybackUrl(video.key, 'hls') : undefined;
 
   useEffect(() => {
-    const videoElement = videoRef.current;
-    if (!videoUrl || !videoElement) return;
-
-    let hls: Hls | null = null;
+    const playbackUrl = getVideoPlaybackUrl(video.key, 'hls');
+    if (!playbackUrl || !videoRef.current) return;
 
     if (Hls.isSupported()) {
-      hls = new Hls();
-      hls.loadSource(videoUrl);
-      hls.attachMedia(videoElement);
-      hls.on(Hls.Events.ERROR, (_event, data) => {
+      const hls = new Hls();
+      hls.loadSource(playbackUrl);
+      hls.attachMedia(videoRef.current);
+      hls.on(Hls.Events.ERROR, (event, data) => {
         console.error('HLS.js error:', data);
       });
-    } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-      videoElement.src = videoUrl;
-    } else {
-      console.warn('このブラウザはHLS再生に非対応です。');
+    } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
+      videoRef.current.src = playbackUrl;
     }
-
-    return () => {
-      if (hls) {
-        hls.destroy();
-      } else {
-        videoElement.removeAttribute('src');
-      }
-    };
-  }, [videoUrl]);
-
-  if (!videoUrl) {
-    return (
-      <div className="text-center text-sm text-gray-500 py-6">
-        ⚠️ 再生用URLが未設定です。変換中または未登録です。
-      </div>
-    );
-  }
+  }, [video.key]);
 
   return (
-    <div className="w-full">
-      <video
-        ref={videoRef}
-        controls
-        muted
-        playsInline
-        className="w-full rounded-xl shadow-md"
-        style={{ maxHeight: '70vh' }}
-      />
-    </div>
+    <video
+      ref={videoRef}
+      controls
+      className="w-full rounded-xl shadow-md"
+      style={{ maxHeight: '70vh' }}
+    />
   );
 };
 
