@@ -1,4 +1,3 @@
-// 差し替え後の完全版 videoUtils.ts
 import { auth, db } from "../firebase";
 import {
   getDoc,
@@ -34,7 +33,7 @@ const CLOUDFRONT_PRIVATE_KEY = process.env.REACT_APP_CLOUDFRONT_PRIVATE_KEY!.rep
 
 /**
  * CloudFront署名付き再生URLを生成（HLS or MP4）
- * 例: videos/abc123/IMG_8552.MOV → /converted/videos/abc123/IMG_8552_hls.m3u8
+ * 例: videos/{videoId}/filename.MOV → /converted/videos/{videoId}/{filename}/{filename}.m3u8
  */
 export const getVideoPlaybackUrl = (
   key: string,
@@ -43,14 +42,14 @@ export const getVideoPlaybackUrl = (
 ): string | null => {
   if (!CLOUDFRONT_DOMAIN || !key) return null;
 
-  const parts = key.split("/");
+  const parts = key.split("/"); // [videos, {videoId}, {fileName}]
   const fileNameWithExt = parts.pop() || "";
-  const fileBaseName = fileNameWithExt.split(".")[0];
-  const videoId = parts[1]; // videos/{videoId}/{fileName} の想定
+  const fileBaseName = fileNameWithExt.split(".")[0]; // IMG_8552
+  const videoId = parts[1]; // videos/{videoId}/{fileName}
 
   const path =
     format === "hls"
-      ? `/converted/videos/${videoId}/${fileBaseName}_hls.m3u8`
+      ? `/converted/videos/${videoId}/${fileBaseName}/${fileBaseName}.m3u8`
       : `/${key}`;
 
   const url = `https://${CLOUDFRONT_DOMAIN}${path}`;
@@ -63,6 +62,9 @@ export const getVideoPlaybackUrl = (
   });
 };
 
+/**
+ * VIP会員判定
+ */
 export const isVipUser = async (): Promise<boolean> => {
   const user = auth.currentUser;
   if (!user) return false;
@@ -70,6 +72,9 @@ export const isVipUser = async (): Promise<boolean> => {
   return vipStatus.rank === "VIP12";
 };
 
+/**
+ * 動画購入済み判定
+ */
 export const hasPurchasedVideo = async (videoId: string): Promise<boolean> => {
   const user = auth.currentUser;
   if (!user) return false;
@@ -77,6 +82,9 @@ export const hasPurchasedVideo = async (videoId: string): Promise<boolean> => {
   return snap.exists();
 };
 
+/**
+ * Firestoreへ動画登録
+ */
 export const registerUploadedVideo = async ({
   title,
   key,
