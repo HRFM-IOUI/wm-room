@@ -44,16 +44,16 @@ export const getVideoPlaybackUrl = (
 ): string | null => {
   if (!CLOUDFRONT_DOMAIN || !key) return null;
 
-  const parts = key.split("/"); // [videos, videoId, fileName.ext]
+  const parts = key.split("/"); // [videos, videoId, fileName]
   if (parts.length < 3) return null;
 
   const videoId = parts[1];
-  const fileName = parts[2].replace(/\.\w+$/, "");
+  const fileName = parts[2].replace(/\.\w+$/, ""); // 拡張子除去
 
   const path =
     format === "hls"
-      ? `/converted/videos/${videoId}/${fileName}/${fileName}_hls720.m3u8`
-      : `/${key}`;
+      ? `/converted/videos/${videoId}/${fileName}/playlist.m3u8` // MediaConvert出力構成に合わせたHLSパス
+      : `/${key}`; // MP4はオリジナルパスのまま
 
   const url = `https://${CLOUDFRONT_DOMAIN}${path}`;
 
