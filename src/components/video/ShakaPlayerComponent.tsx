@@ -1,4 +1,3 @@
-// ✅ 修正済み：ShakaPlayerComponent.tsx
 import React, { useEffect, useRef, useState } from 'react';
 
 interface ShakaPlayerProps {
@@ -15,6 +14,8 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
     async function initShaka() {
       const videoElement = videoRef.current;
       if (!videoElement || !manifestUrl) return;
+
+      console.log("✅ manifestUrl:", manifestUrl); // ← デバッグログ追加
 
       const shaka = require('shaka-player/dist/shaka-player.compiled.js');
       shaka.polyfill.installAll();
