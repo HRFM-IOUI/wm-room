@@ -14,11 +14,11 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
-
-// ✅ 追加：Googleログイン用プロバイダーをエクスポート
-const provider = new GoogleAuthProvider();
+const provider = new GoogleAuthProvider(); // ✅ Google ログイン用
 
 export { auth, db, storage, provider };
+
