@@ -1,58 +1,67 @@
-import React, { useEffect, useRef } from 'react';
-
-let shaka: any;
-if (typeof window !== 'undefined') {
-  shaka = require('shaka-player/dist/shaka-player.compiled.js');
-}
+import React, { useEffect, useRef, useState } from 'react';
 
 interface ShakaPlayerProps {
   manifestUrl: string;
 }
 
 const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [shakaLoaded, setShakaLoaded] = useState(false);
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !manifestUrl || !shaka) return;
+    let player: any;
 
-    shaka.polyfill.installAll();
+    async function initShaka() {
+      const videoElement = videoRef.current;
+      if (!videoElement || !manifestUrl) return;
 
-    if (!shaka.Player.isBrowserSupported()) {
-      console.error('Shaka Player is not supported in this browser.');
-      return;
-    }
+      const shaka = require('shaka-player/dist/shaka-player.compiled.js');
+      shaka.polyfill.installAll();
 
-    const player = new shaka.Player(video);
+      if (!shaka.Player.isBrowserSupported()) {
+        console.error('Shaka Player is not supported in this browser.');
+        return;
+      }
 
-    player.addEventListener('error', (event: Event) => {
-      console.error('Shaka error', event);
-    });
+      player = new shaka.Player(videoElement);
 
-    player.load(manifestUrl)
-      .then(() => {
-        console.log('Shaka load success, trying to play...');
-        video.play().catch((err: any) => {
-          console.warn('AutoPlay or manual play failed:', err);
-        });
-      })
-      .catch((err: any) => {
-        console.error('Shaka load error', err);
+      player.addEventListener('error', (event: any) => {
+        console.error('Shaka Player Error:', event.detail);
       });
 
+      try {
+        await player.load(manifestUrl);
+        console.log('Shaka Player loaded successfully.');
+        videoElement.play().catch((err: any) => {
+          console.warn('Autoplay failed:', err);
+        });
+      } catch (error) {
+        console.error('Error loading manifest:', error);
+      }
+
+      setShakaLoaded(true);
+    }
+
+    initShaka();
+
     return () => {
-      player.destroy();
+      if (player) player.destroy();
     };
   }, [manifestUrl]);
 
   return (
-    <video
-      ref={videoRef}
-      controls
-      autoPlay
-      className="w-full rounded-xl shadow-md"
-      style={{ maxHeight: '70vh' }}
-    />
+    <div className="w-full">
+      <video
+        ref={videoRef}
+        controls
+        autoPlay
+        muted
+        playsInline
+        className="w-full rounded-xl shadow-md"
+        style={{ maxHeight: '70vh' }}
+      />
+      {!shakaLoaded && <div className="text-center py-2">Loading player...</div>}
+    </div>
   );
 };
 
