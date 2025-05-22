@@ -1,5 +1,5 @@
-// src/components/video/DownloadButton.tsx
-import React from 'react';
+// ✅ 修正済み：DownloadButton.tsx
+import React, { useEffect, useState } from 'react';
 import { getVideoPlaybackUrl } from '../../utils/videoUtils';
 
 interface DownloadButtonProps {
@@ -10,16 +10,25 @@ interface DownloadButtonProps {
 }
 
 const DownloadButton: React.FC<DownloadButtonProps> = ({ video }) => {
-  if (!video?.key) return null;
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
-  const downloadUrl = getVideoPlaybackUrl(video.key, 'mp4');
+  useEffect(() => {
+    const fetchUrl = async () => {
+      if (video?.key) {
+        const url = await getVideoPlaybackUrl(video.key, 'mp4');
+        setDownloadUrl(url);
+      }
+    };
+    fetchUrl();
+  }, [video?.key]);
+
   if (!downloadUrl) return null;
 
   return (
     <div className="mt-4">
       <a
         href={downloadUrl}
-        download={video.title || 'video.mp4'}
+        download={video?.title || 'video.mp4'}
         className="inline-block bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
       >
         ダウンロード
@@ -27,5 +36,4 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ video }) => {
     </div>
   );
 };
-
 export default DownloadButton;

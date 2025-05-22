@@ -1,3 +1,4 @@
+// ✅ 追加修正：VideoDetail.tsx で非同期で playbackUrl を取得
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
@@ -54,7 +55,7 @@ const VideoDetail: React.FC = () => {
           setAccessGranted(canAccess);
 
           if (canAccess) {
-            const signedUrl = getVideoPlaybackUrl(data.key, 'hls');
+            const signedUrl = await getVideoPlaybackUrl(data.key, 'hls');
             setPlaybackUrl(signedUrl);
           }
         }

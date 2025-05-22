@@ -1,3 +1,4 @@
+// ✅ 修正済み：videoUtils.ts
 import { auth, db } from "../firebase";
 import {
   getDoc,
@@ -26,26 +27,21 @@ interface RegisterVideoParams {
   tags?: string[];
 }
 
-// CloudFront署名設定
 const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN!;
 const CLOUDFRONT_KEY_PAIR_ID = process.env.REACT_APP_CLOUDFRONT_KEY_PAIR_ID!;
 const CLOUDFRONT_PRIVATE_KEY = process.env.REACT_APP_CLOUDFRONT_PRIVATE_KEY!.replace(/\\n/g, "\n");
 
-/**
- * CloudFront署名付き再生URLを生成（HLS or MP4）
- * 例: videos/{videoId}/filename.MOV → /converted/videos/{videoId}/{filename}/{filename}.m3u8
- */
-export const getVideoPlaybackUrl = (
+export const getVideoPlaybackUrl = async (
   key: string,
   format: "hls" | "mp4" = "hls",
   expiresInSec = 3600
-): string | null => {
+): Promise<string | null> => {
   if (!CLOUDFRONT_DOMAIN || !key) return null;
 
-  const parts = key.split("/"); // [videos, {videoId}, {fileName}]
+  const parts = key.split("/");
   const fileNameWithExt = parts.pop() || "";
-  const fileBaseName = fileNameWithExt.split(".")[0]; // IMG_8552
-  const videoId = parts[1]; // videos/{videoId}/{fileName}
+  const fileBaseName = fileNameWithExt.split(".")[0];
+  const videoId = parts[1];
 
   const path =
     format === "hls"
@@ -54,17 +50,16 @@ export const getVideoPlaybackUrl = (
 
   const url = `https://${CLOUDFRONT_DOMAIN}${path}`;
 
-  return getSignedUrl({
+  const signedUrl = await getSignedUrl({
     url,
     keyPairId: CLOUDFRONT_KEY_PAIR_ID,
     privateKey: CLOUDFRONT_PRIVATE_KEY,
     dateLessThan: new Date(Date.now() + expiresInSec * 1000),
   });
+
+  return signedUrl;
 };
 
-/**
- * VIP会員判定
- */
 export const isVipUser = async (): Promise<boolean> => {
   const user = auth.currentUser;
   if (!user) return false;
@@ -72,9 +67,6 @@ export const isVipUser = async (): Promise<boolean> => {
   return vipStatus.rank === "VIP12";
 };
 
-/**
- * 動画購入済み判定
- */
 export const hasPurchasedVideo = async (videoId: string): Promise<boolean> => {
   const user = auth.currentUser;
   if (!user) return false;
@@ -82,9 +74,6 @@ export const hasPurchasedVideo = async (videoId: string): Promise<boolean> => {
   return snap.exists();
 };
 
-/**
- * Firestoreへ動画登録
- */
 export const registerUploadedVideo = async ({
   title,
   key,

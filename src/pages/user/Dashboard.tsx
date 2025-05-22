@@ -65,13 +65,13 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const filteredVideos = videos.filter((video) =>
-    video.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   useEffect(() => {
     fetchVideos();
   }, []);
+
+  const filteredVideos = videos.filter((video) =>
+    video.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
@@ -91,39 +91,57 @@ const Dashboard: React.FC = () => {
         {filteredVideos.length === 0 ? (
           <p>動画が見つかりません。</p>
         ) : (
-          filteredVideos.map((video) => {
-            const playbackUrl = getVideoPlaybackUrl(video.key, "hls");
-            return (
-              <div
-                key={video.id}
-                className="p-4 border rounded-xl shadow-sm bg-white space-y-2"
-              >
-                <p className="font-semibold">{video.title}</p>
-                {playbackUrl ? (
-                  <ShakaPlayerComponent manifestUrl={playbackUrl} />
-                ) : (
-                  <p className="text-red-500">再生URLの生成に失敗しました。</p>
-                )}
-                <div className="flex gap-4 mt-2">
-                  <button
-                    onClick={() => togglePublic(video)}
-                    className={`px-3 py-1 rounded ${
-                      video.isPublic ? "bg-green-500" : "bg-gray-400"
-                    } text-white`}
-                  >
-                    {video.isPublic ? "公開中" : "非公開"}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(video)}
-                    className="bg-red-500 text-white px-3 py-1 rounded"
-                  >
-                    削除
-                  </button>
-                </div>
-              </div>
-            );
-          })
+          filteredVideos.map((video) => (
+            <VideoCard video={video} key={video.id} onDelete={handleDelete} onTogglePublic={togglePublic} />
+          ))
         )}
+      </div>
+    </div>
+  );
+};
+
+const VideoCard = ({
+  video,
+  onDelete,
+  onTogglePublic,
+}: {
+  video: VideoData;
+  onDelete: (video: VideoData) => void;
+  onTogglePublic: (video: VideoData) => void;
+}) => {
+  const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUrl = async () => {
+      const url = await getVideoPlaybackUrl(video.key, "hls");
+      setPlaybackUrl(url);
+    };
+    fetchUrl();
+  }, [video.key]);
+
+  return (
+    <div className="p-4 border rounded-xl shadow-sm bg-white space-y-2">
+      <p className="font-semibold">{video.title}</p>
+      {playbackUrl ? (
+        <ShakaPlayerComponent manifestUrl={playbackUrl} />
+      ) : (
+        <p className="text-gray-400">再生URL取得中...</p>
+      )}
+      <div className="flex gap-4 mt-2">
+        <button
+          onClick={() => onTogglePublic(video)}
+          className={`px-3 py-1 rounded ${
+            video.isPublic ? "bg-green-500" : "bg-gray-400"
+          } text-white`}
+        >
+          {video.isPublic ? "公開中" : "非公開"}
+        </button>
+        <button
+          onClick={() => onDelete(video)}
+          className="bg-red-500 text-white px-3 py-1 rounded"
+        >
+          削除
+        </button>
       </div>
     </div>
   );
