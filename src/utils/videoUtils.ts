@@ -1,4 +1,3 @@
-// ✅ 修正済み：videoUtils.ts
 import { auth, db } from "../firebase";
 import {
   getDoc,
@@ -31,6 +30,10 @@ const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN!;
 const CLOUDFRONT_KEY_PAIR_ID = process.env.REACT_APP_CLOUDFRONT_KEY_PAIR_ID!;
 const CLOUDFRONT_PRIVATE_KEY = process.env.REACT_APP_CLOUDFRONT_PRIVATE_KEY!.replace(/\\n/g, "\n");
 
+/**
+ * CloudFront署名付き再生URLを生成（HLS or MP4）
+ * key = videos/{videoId}/{fileName}
+ */
 export const getVideoPlaybackUrl = async (
   key: string,
   format: "hls" | "mp4" = "hls",
@@ -38,10 +41,12 @@ export const getVideoPlaybackUrl = async (
 ): Promise<string | null> => {
   if (!CLOUDFRONT_DOMAIN || !key) return null;
 
-  const parts = key.split("/");
-  const fileNameWithExt = parts.pop() || "";
-  const fileBaseName = fileNameWithExt.split(".")[0];
+  const parts = key.split("/"); // ["videos", "{videoId}", "{fileName}"]
+  if (parts.length < 3) return null;
+
   const videoId = parts[1];
+  const fileNameWithExt = parts[2];
+  const fileBaseName = fileNameWithExt.split(".")[0];
 
   const path =
     format === "hls"
@@ -49,7 +54,7 @@ export const getVideoPlaybackUrl = async (
       : `/${key}`;
 
   const url = `https://${CLOUDFRONT_DOMAIN}${path}`;
-  console.log("🎯 [DEBUG] 再生URL:", url);
+
   const signedUrl = await getSignedUrl({
     url,
     keyPairId: CLOUDFRONT_KEY_PAIR_ID,
