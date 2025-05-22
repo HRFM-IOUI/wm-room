@@ -26,20 +26,27 @@ interface RegisterVideoParams {
   tags?: string[];
 }
 
-const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN!;
-const CLOUDFRONT_KEY_PAIR_ID = process.env.REACT_APP_CLOUDFRONT_KEY_PAIR_ID!;
-const CLOUDFRONT_PRIVATE_KEY = process.env.REACT_APP_CLOUDFRONT_PRIVATE_KEY!.replace(/\\n/g, "\n");
+// 環境変数取得（安全に）
+const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN;
+const CLOUDFRONT_KEY_PAIR_ID = process.env.REACT_APP_CLOUDFRONT_KEY_PAIR_ID;
+const CLOUDFRONT_PRIVATE_KEY_RAW = process.env.REACT_APP_CLOUDFRONT_PRIVATE_KEY;
+
+if (!CLOUDFRONT_DOMAIN || !CLOUDFRONT_KEY_PAIR_ID || !CLOUDFRONT_PRIVATE_KEY_RAW) {
+  console.error("❌ CloudFront 関連の環境変数が不足しています。");
+  throw new Error("CloudFront 環境変数が未定義です。");
+}
+
+const CLOUDFRONT_PRIVATE_KEY = CLOUDFRONT_PRIVATE_KEY_RAW.replace(/\\n/g, "\n");
 
 /**
  * CloudFront署名付き再生URLを生成（HLS or MP4）
- * key = videos/{videoId}/{fileName}
  */
 export const getVideoPlaybackUrl = async (
   key: string,
   format: "hls" | "mp4" = "hls",
   expiresInSec = 3600
 ): Promise<string | null> => {
-  if (!CLOUDFRONT_DOMAIN || !key) return null;
+  if (!key) return null;
 
   const parts = key.split("/"); // ["videos", "{videoId}", "{fileName}"]
   if (parts.length < 3) return null;
@@ -51,7 +58,7 @@ export const getVideoPlaybackUrl = async (
   const path =
     format === "hls"
       ? `/converted/videos/${videoId}/${fileBaseName}/playlist.m3u8`
-      : `/${key}`; // MP4ならそのまま使用
+      : `/${key}`;
 
   const url = `https://${CLOUDFRONT_DOMAIN}${path}`;
 
