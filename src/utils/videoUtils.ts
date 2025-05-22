@@ -49,7 +49,7 @@ export const getVideoPlaybackUrl = async (
       : `/${key}`;
 
   const url = `https://${CLOUDFRONT_DOMAIN}${path}`;
-
+  console.log("🎯 [DEBUG] 再生URL:", url);
   const signedUrl = await getSignedUrl({
     url,
     keyPairId: CLOUDFRONT_KEY_PAIR_ID,
