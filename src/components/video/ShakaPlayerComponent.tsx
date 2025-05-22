@@ -15,7 +15,7 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
       const videoElement = videoRef.current;
       if (!videoElement || !manifestUrl) return;
 
-      console.log("✅ manifestUrl:", manifestUrl); // ← デバッグログ追加
+      console.log("✅ manifestUrl:", manifestUrl);
 
       const shaka = require('shaka-player/dist/shaka-player.compiled.js');
       shaka.polyfill.installAll();
@@ -26,6 +26,9 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
       }
 
       player = new shaka.Player(videoElement);
+
+      // 🔒 CloudFront署名付きURLとS3プリサイン衝突対策（重要！）
+      player.getNetworkingEngine().clearAllRequestFilters();
 
       player.addEventListener('error', (event: any) => {
         console.error('Shaka Player Error:', event.detail);
