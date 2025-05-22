@@ -61,6 +61,7 @@ const Uploader: React.FC = () => {
           method: "PUT",
           headers: { "Content-Type": file.type },
           body: blob,
+          mode: "cors" // 🔥 CORS対応の明示追加！
         });
 
         const eTag = uploadRes.headers.get("ETag");
