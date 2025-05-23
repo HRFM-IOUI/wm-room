@@ -61,7 +61,7 @@ const Dashboard: React.FC = () => {
       );
     } catch (err) {
       console.error(err);
-      alert("更新に失敗しました");
+      alert("公開状態の更新に失敗しました");
     }
   };
 
@@ -92,7 +92,12 @@ const Dashboard: React.FC = () => {
           <p>動画が見つかりません。</p>
         ) : (
           filteredVideos.map((video) => (
-            <VideoCard video={video} key={video.id} onDelete={handleDelete} onTogglePublic={togglePublic} />
+            <VideoCard
+              video={video}
+              key={video.id}
+              onDelete={handleDelete}
+              onTogglePublic={togglePublic}
+            />
           ))
         )}
       </div>
@@ -113,8 +118,17 @@ const VideoCard = ({
 
   useEffect(() => {
     const fetchUrl = async () => {
-      const url = await getVideoPlaybackUrl(video.key, "hls");
-      setPlaybackUrl(url);
+      if (!video.key) {
+        console.warn("⚠️ video.key が未定義のため再生スキップ", video);
+        return;
+      }
+
+      try {
+        const url = await getVideoPlaybackUrl(video.key, "hls");
+        setPlaybackUrl(url);
+      } catch (err) {
+        console.error("再生URL取得エラー:", err);
+      }
     };
     fetchUrl();
   }, [video.key]);
