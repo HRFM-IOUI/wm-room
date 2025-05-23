@@ -25,18 +25,22 @@ const Dashboard: React.FC = () => {
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  const fetchVideos = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
+  useEffect(() => {
+    const fetchVideos = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
 
-    const q = query(collection(db, "videos"), where("userId", "==", user.uid));
-    const querySnapshot = await getDocs(q);
-    const videoList = querySnapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data(),
-    })) as VideoData[];
-    setVideos(videoList);
-  };
+      const q = query(collection(db, "videos"), where("userId", "==", user.uid));
+      const querySnapshot = await getDocs(q);
+      const videoList = querySnapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+      })) as VideoData[];
+      setVideos(videoList);
+    };
+
+    fetchVideos();
+  }, []);
 
   const handleDelete = async (video: VideoData) => {
     if (!window.confirm("本当に削除しますか？")) return;
@@ -63,10 +67,6 @@ const Dashboard: React.FC = () => {
       alert("公開状態の更新に失敗しました");
     }
   };
-
-  useEffect(() => {
-    fetchVideos();
-  }, []);
 
   const filteredVideos = videos.filter((video) =>
     video.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -129,9 +129,8 @@ const VideoCard = ({
         console.error("再生URL取得エラー:", err);
       }
     };
-
     fetchUrl();
-  }, [video.key]); // 🔧 video.key 依存で明確化
+  }, [video.key]);
 
   return (
     <div className="p-4 border rounded-xl shadow-sm bg-white space-y-2">
