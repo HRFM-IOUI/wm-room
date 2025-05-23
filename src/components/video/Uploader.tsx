@@ -4,7 +4,6 @@ import { requestVideoConversion } from "../../utils/api";
 
 const API_BASE = "https://cf-worker-upload.ik39-10vevic.workers.dev";
 const PART_SIZE = 10 * 1024 * 1024;
-
 const CATEGORIES: string[] = ["その他"];
 
 const Uploader: React.FC = () => {
@@ -27,7 +26,9 @@ const Uploader: React.FC = () => {
 
     try {
       const videoId = crypto.randomUUID();
+      const key = `videos/${videoId}/${file.name}`;
 
+      // S3 multipart upload 初期化
       const resInit = await fetch(`${API_BASE}/initiate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -35,11 +36,12 @@ const Uploader: React.FC = () => {
           fileName: file.name,
           fileType: file.type,
           videoId,
+          key, // 明示送信により key 形式を固定
         }),
       });
 
-      const { uploadId, key } = await resInit.json();
-      if (!uploadId || !key) throw new Error("初期化エラー");
+      const { uploadId } = await resInit.json();
+      if (!uploadId) throw new Error("初期化エラー: uploadId未取得");
 
       const partCount = Math.ceil(file.size / PART_SIZE);
       const parts: { ETag: string; PartNumber: number }[] = [];
@@ -61,7 +63,7 @@ const Uploader: React.FC = () => {
           method: "PUT",
           headers: { "Content-Type": file.type },
           body: blob,
-          mode: "cors" // 🔥 CORS対応の明示追加！
+          mode: "cors",
         });
 
         const eTag = uploadRes.headers.get("ETag");
@@ -71,12 +73,14 @@ const Uploader: React.FC = () => {
         setProgress(Math.round((partNumber / partCount) * 100));
       }
 
+      // マルチパート完了
       await fetch(`${API_BASE}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key, uploadId, parts }),
       });
 
+      // Firestore 登録
       const docRef = await registerUploadedVideo({
         title: file.name,
         key,
@@ -87,6 +91,7 @@ const Uploader: React.FC = () => {
 
       console.log("📄 Firestore登録:", docRef.id);
 
+      // MediaConvert 変換ジョブ送信
       await requestVideoConversion(key);
       setStatus("✅ アップロード＆変換完了！");
       setFile(null);

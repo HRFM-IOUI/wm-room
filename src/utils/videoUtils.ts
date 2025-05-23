@@ -9,7 +9,6 @@ import {
 } from "firebase/firestore";
 import { getUserVipStatus } from "./vipUtils";
 
-// ✅ CloudFront署名はCloudflare Worker経由で取得する構成に変更
 const SIGNED_URL_ENDPOINT =
   "https://cf-worker-upload.ik39-10vevic.workers.dev/signed-url";
 
@@ -36,13 +35,20 @@ export const getVideoPlaybackUrl = async (
   key: string,
   format: "hls" | "mp4" = "hls"
 ): Promise<string> => {
-  if (!key) throw new Error("video key が未指定です");
+  if (!key || typeof key !== "string") {
+    throw new Error("video key が未指定、または形式不正です");
+  }
 
-  const parts = key.split("/"); // videos/{videoId}/{filename}
-  if (parts.length < 3) throw new Error("不正な動画キー形式");
+  const parts = key.split("/"); // 期待形式: videos/{videoId}/{filename}
+  if (parts.length < 3 || !parts[1] || !parts[2]) {
+    throw new Error(`不正な動画キー形式: ${key}`);
+  }
 
   const videoId = parts[1];
-  const fileName = parts[2].split(".")[0]; // "IMG_8552.MOV" → "IMG_8552"
+  const fileName = parts[2].split(".")[0];
+  if (!fileName) {
+    throw new Error(`ファイル名抽出失敗: ${parts[2]}`);
+  }
 
   const path =
     format === "hls"
@@ -61,6 +67,10 @@ export const getVideoPlaybackUrl = async (
   }
 
   const { signedUrl } = await res.json();
+  if (!signedUrl) {
+    throw new Error("署名URLが空です。Workerのレスポンスを確認してください。");
+  }
+
   return signedUrl;
 };
 
