@@ -57,7 +57,7 @@ export const getVideoPlaybackUrl = async (
 
   const path =
     format === "hls"
-      ? `/converted/${videoId}/${fileBaseName}/playlist.m3u8` // ✅ 修正済み
+      ? `/converted/${videoId}/${fileBaseName}/${fileBaseName}playlist.m3u8` // ✅ 修正済み
       : `/${key}`;
 
   const url = `https://${CLOUDFRONT_DOMAIN}${path}`;
