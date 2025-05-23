@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   collection,
   query,
@@ -25,22 +25,22 @@ const Dashboard: React.FC = () => {
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  const fetchVideos = useCallback(async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const q = query(collection(db, "videos"), where("userId", "==", user.uid));
-    const querySnapshot = await getDocs(q);
-    const videoList = querySnapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data(),
-    })) as VideoData[];
-    setVideos(videoList);
-  }, []);
-
   useEffect(() => {
+    const fetchVideos = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const q = query(collection(db, "videos"), where("userId", "==", user.uid));
+      const querySnapshot = await getDocs(q);
+      const videoList = querySnapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+      })) as VideoData[];
+      setVideos(videoList);
+    };
+
     fetchVideos();
-  }, [fetchVideos]);
+  }, []);
 
   const handleDelete = async (video: VideoData) => {
     if (!window.confirm("本当に削除しますか？")) return;
@@ -104,11 +104,15 @@ const Dashboard: React.FC = () => {
   );
 };
 
-const VideoCard: React.FC<{
+const VideoCard = ({
+  video,
+  onDelete,
+  onTogglePublic,
+}: {
   video: VideoData;
   onDelete: (video: VideoData) => void;
   onTogglePublic: (video: VideoData) => void;
-}> = ({ video, onDelete, onTogglePublic }) => {
+}) => {
   const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -126,7 +130,7 @@ const VideoCard: React.FC<{
       }
     };
     fetchUrl();
-  }, [video.key]);
+  }, [video]);
 
   return (
     <div className="p-4 border rounded-xl shadow-sm bg-white space-y-2">
