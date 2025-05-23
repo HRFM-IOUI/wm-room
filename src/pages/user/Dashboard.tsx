@@ -93,8 +93,8 @@ const Dashboard: React.FC = () => {
         ) : (
           filteredVideos.map((video) => (
             <VideoCard
-              video={video}
               key={video.id}
+              video={video}
               onDelete={handleDelete}
               onTogglePublic={togglePublic}
             />
@@ -118,7 +118,7 @@ const VideoCard = ({
 
   useEffect(() => {
     const fetchUrl = async () => {
-      if (!video.key) {
+      if (!video?.key) {
         console.warn("⚠️ video.key が未定義のため再生スキップ", video);
         return;
       }
@@ -131,7 +131,7 @@ const VideoCard = ({
       }
     };
     fetchUrl();
-  }, [video.key]);
+  }, [video]); // 🔥 ESLintのreact-hooks/exhaustive-deps警告を完全回避
 
   return (
     <div className="p-4 border rounded-xl shadow-sm bg-white space-y-2">
