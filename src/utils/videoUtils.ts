@@ -9,6 +9,7 @@ import {
 } from "firebase/firestore";
 import { getUserVipStatus } from "./vipUtils";
 
+// ✅ CloudFront署名はCloudflare Worker経由で取得する構成に変更
 const SIGNED_URL_ENDPOINT =
   "https://cf-worker-upload.ik39-10vevic.workers.dev/signed-url";
 
@@ -36,6 +37,7 @@ export const getVideoPlaybackUrl = async (
   format: "hls" | "mp4" = "hls"
 ): Promise<string> => {
   if (!key || typeof key !== "string") {
+    console.warn("⚠️ video key が未定義または不正:", key);
     throw new Error("video key が未指定、または形式不正です");
   }
 
@@ -55,23 +57,29 @@ export const getVideoPlaybackUrl = async (
       ? `converted/${videoId}/${fileName}/playlist.m3u8`
       : key;
 
-  const res = await fetch(SIGNED_URL_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path }),
-  });
+  try {
+    const res = await fetch(SIGNED_URL_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`署名付きURLの取得に失敗しました: ${text}`);
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`署名付きURLの取得に失敗しました: ${text}`);
+    }
+
+    const { signedUrl } = await res.json();
+
+    if (!signedUrl) {
+      throw new Error("署名URLが空です。Workerのレスポンスを確認してください。");
+    }
+
+    return signedUrl;
+  } catch (err: any) {
+    console.error("🔥 Worker署名URL取得エラー:", err);
+    throw err;
   }
-
-  const { signedUrl } = await res.json();
-  if (!signedUrl) {
-    throw new Error("署名URLが空です。Workerのレスポンスを確認してください。");
-  }
-
-  return signedUrl;
 };
 
 /**
