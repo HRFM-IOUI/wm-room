@@ -8,7 +8,10 @@ import {
   DocumentReference,
 } from "firebase/firestore";
 import { getUserVipStatus } from "./vipUtils";
-import { getSignedUrl } from "@aws-sdk/cloudfront-signer";
+
+// ✅ CloudFront署名はCloudflare Worker経由で取得する構成に変更
+const SIGNED_URL_ENDPOINT =
+  "https://cf-worker-upload-production.ik39-10vevic.workers.dev/signed-url";
 
 interface VipStatus {
   rank: string;
@@ -26,52 +29,44 @@ interface RegisterVideoParams {
   tags?: string[];
 }
 
-// 環境変数取得（安全に）
-const CLOUDFRONT_DOMAIN = process.env.REACT_APP_CLOUDFRONT_DOMAIN;
-const CLOUDFRONT_KEY_PAIR_ID = process.env.REACT_APP_CLOUDFRONT_KEY_PAIR_ID;
-const CLOUDFRONT_PRIVATE_KEY_RAW = process.env.REACT_APP_CLOUDFRONT_PRIVATE_KEY;
-
-if (!CLOUDFRONT_DOMAIN || !CLOUDFRONT_KEY_PAIR_ID || !CLOUDFRONT_PRIVATE_KEY_RAW) {
-  console.error("❌ CloudFront 関連の環境変数が不足しています。");
-  throw new Error("CloudFront 環境変数が未定義です。");
-}
-
-const CLOUDFRONT_PRIVATE_KEY = CLOUDFRONT_PRIVATE_KEY_RAW.replace(/\\n/g, "\n");
-
 /**
- * CloudFront署名付き再生URLを生成（HLS or MP4）
+ * CloudFront署名付き再生URLを取得（Worker経由）
  */
 export const getVideoPlaybackUrl = async (
   key: string,
-  format: "hls" | "mp4" = "hls",
-  expiresInSec = 3600
-): Promise<string | null> => {
-  if (!key) return null;
+  format: "hls" | "mp4" = "hls"
+): Promise<string> => {
+  if (!key) throw new Error("video key が未指定です");
 
-  const parts = key.split("/"); // ["videos", "{videoId}", "{fileName}"]
-  if (parts.length < 3) return null;
+  const parts = key.split("/"); // videos/{videoId}/{filename}
+  if (parts.length < 3) throw new Error("不正な動画キー形式");
 
   const videoId = parts[1];
-  const fileNameWithExt = parts[2];
-  const fileBaseName = fileNameWithExt.split(".")[0];
+  const fileName = parts[2].split(".")[0]; // "IMG_8552.MOV" → "IMG_8552"
 
   const path =
     format === "hls"
-      ? `/converted/${videoId}/${fileBaseName}/${fileBaseName}playlist.m3u8` // ✅ 修正済み
-      : `/${key}`;
+      ? `converted/${videoId}/${fileName}/playlist.m3u8`
+      : key;
 
-  const url = `https://${CLOUDFRONT_DOMAIN}${path}`;
-
-  const signedUrl = await getSignedUrl({
-    url,
-    keyPairId: CLOUDFRONT_KEY_PAIR_ID,
-    privateKey: CLOUDFRONT_PRIVATE_KEY,
-    dateLessThan: new Date(Date.now() + expiresInSec * 1000),
+  const res = await fetch(SIGNED_URL_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path }),
   });
 
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`署名付きURLの取得に失敗しました: ${text}`);
+  }
+
+  const { signedUrl } = await res.json();
   return signedUrl;
 };
 
+/**
+ * VIPユーザー判定
+ */
 export const isVipUser = async (): Promise<boolean> => {
   const user = auth.currentUser;
   if (!user) return false;
@@ -79,6 +74,9 @@ export const isVipUser = async (): Promise<boolean> => {
   return vipStatus.rank === "VIP12";
 };
 
+/**
+ * 購入済み判定
+ */
 export const hasPurchasedVideo = async (videoId: string): Promise<boolean> => {
   const user = auth.currentUser;
   if (!user) return false;
@@ -86,6 +84,9 @@ export const hasPurchasedVideo = async (videoId: string): Promise<boolean> => {
   return snap.exists();
 };
 
+/**
+ * Firestoreへ動画を登録
+ */
 export const registerUploadedVideo = async ({
   title,
   key,
