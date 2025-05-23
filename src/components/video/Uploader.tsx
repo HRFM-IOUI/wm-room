@@ -12,6 +12,7 @@ const Uploader: React.FC = () => {
   const [tagsInput, setTagsInput] = useState<string>("");
   const [progress, setProgress] = useState<number>(0);
   const [status, setStatus] = useState<string>("");
+  const [isUploading, setIsUploading] = useState<boolean>(false);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -21,6 +22,7 @@ const Uploader: React.FC = () => {
 
   const handleUpload = async () => {
     if (!file) return;
+    setIsUploading(true);
     setStatus("アップロード中...");
     setProgress(0);
 
@@ -28,17 +30,16 @@ const Uploader: React.FC = () => {
       const videoId = crypto.randomUUID();
       const key = `videos/${videoId}/${file.name}`;
 
-      // S3 multipart upload 初期化
       const resInit = await fetch(`${API_BASE}/initiate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
-          videoId,
-          key, // 明示送信により key 形式を固定
-        }),
+        body: JSON.stringify({ fileName: file.name, fileType: file.type, videoId, key }),
       });
+
+      if (!resInit.ok) {
+        const text = await resInit.text();
+        throw new Error(`初期化APIエラー: ${text}`);
+      }
 
       const { uploadId } = await resInit.json();
       if (!uploadId) throw new Error("初期化エラー: uploadId未取得");
@@ -57,6 +58,11 @@ const Uploader: React.FC = () => {
           body: JSON.stringify({ key, uploadId, partNumber }),
         });
 
+        if (!resPart.ok) {
+          const text = await resPart.text();
+          throw new Error(`署名取得失敗（Part ${partNumber}）: ${text}`);
+        }
+
         const { signedUrl } = await resPart.json();
 
         const uploadRes = await fetch(signedUrl, {
@@ -66,6 +72,10 @@ const Uploader: React.FC = () => {
           mode: "cors",
         });
 
+        if (!uploadRes.ok) {
+          throw new Error(`S3アップロード失敗（Part ${partNumber}）`);
+        }
+
         const eTag = uploadRes.headers.get("ETag");
         if (!eTag) throw new Error(`ETagが取得できません（Part ${partNumber}）`);
 
@@ -73,14 +83,12 @@ const Uploader: React.FC = () => {
         setProgress(Math.round((partNumber / partCount) * 100));
       }
 
-      // マルチパート完了
       await fetch(`${API_BASE}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key, uploadId, parts }),
       });
 
-      // Firestore 登録
       const docRef = await registerUploadedVideo({
         title: file.name,
         key,
@@ -91,14 +99,16 @@ const Uploader: React.FC = () => {
 
       console.log("📄 Firestore登録:", docRef.id);
 
-      // MediaConvert 変換ジョブ送信
       await requestVideoConversion(key);
+      setProgress(100);
       setStatus("✅ アップロード＆変換完了！");
       setFile(null);
       setTagsInput("");
     } catch (err: any) {
       console.error("❌ エラー:", err);
       setStatus("❌ アップロード失敗: " + (err?.message || "不明なエラー"));
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -111,6 +121,7 @@ const Uploader: React.FC = () => {
         accept="video/*"
         onChange={handleFileChange}
         className="w-full p-2 border rounded"
+        disabled={isUploading}
       />
       {file && <p className="text-sm text-gray-600 mt-1">🎬 {file.name}</p>}
 
@@ -120,6 +131,7 @@ const Uploader: React.FC = () => {
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           className="w-full border p-2 rounded"
+          disabled={isUploading}
         >
           {CATEGORIES.map((cat) => (
             <option key={cat} value={cat}>{cat}</option>
@@ -128,20 +140,19 @@ const Uploader: React.FC = () => {
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-1">
-          タグ（カンマ区切り）
-        </label>
+        <label className="block text-sm font-semibold text-gray-700 mb-1">タグ（カンマ区切り）</label>
         <input
           type="text"
           placeholder="例: Vlog,旅行,猫"
           value={tagsInput}
           onChange={(e) => setTagsInput(e.target.value)}
           className="w-full border p-2 rounded"
+          disabled={isUploading}
         />
       </div>
 
       <button
-        disabled={!file}
+        disabled={!file || isUploading}
         onClick={handleUpload}
         className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded font-semibold"
       >

@@ -28,12 +28,21 @@ const VideoDetail: React.FC = () => {
         const ref = doc(db, 'videos', id!);
         const snap = await getDoc(ref);
         if (!snap.exists()) {
+          console.warn("❌ Firestore: 該当動画が存在しません");
           setVideo(null);
           setLoading(false);
           return;
         }
 
-        const data = { id: snap.id, ...snap.data() } as VideoData;
+        const raw = snap.data();
+        if (!raw || typeof raw.key !== 'string' || typeof raw.type !== 'string') {
+          console.warn("❌ Firestore: データ構造不正", raw);
+          setVideo(null);
+          setLoading(false);
+          return;
+        }
+
+        const data = { id: snap.id, ...raw } as VideoData;
         setVideo(data);
 
         const user = auth.currentUser;
@@ -56,6 +65,7 @@ const VideoDetail: React.FC = () => {
           if (canAccess) {
             if (!data.key) {
               console.warn("⚠️ video.key が未定義のため再生不可", data);
+              setAccessGranted(false);
               return;
             }
             const signedUrl = await getVideoPlaybackUrl(data.key, 'hls');
@@ -63,7 +73,7 @@ const VideoDetail: React.FC = () => {
           }
         }
       } catch (err) {
-        console.error('動画取得エラー:', err);
+        console.error('🔥 動画取得エラー:', err);
       } finally {
         setLoading(false);
       }
@@ -115,6 +125,10 @@ const VideoDetail: React.FC = () => {
 
           {video.type === 'sample' && (
             <p>この動画は無料会員登録後に再生できます。</p>
+          )}
+
+          {!playbackUrl && (
+            <p className="text-sm text-red-500">⚠️ 動画の再生URLが取得できませんでした。</p>
           )}
         </div>
       )}

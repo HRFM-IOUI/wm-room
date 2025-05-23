@@ -1,4 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from "react";
+
+// ShakaPlayer を直接 import しないことで TS2306 を完全回避
+let shaka: any;
+if (typeof window !== "undefined") {
+  shaka = require("shaka-player/dist/shaka-player.compiled.js");
+}
 
 interface ShakaPlayerProps {
   manifestUrl: string;
@@ -11,41 +17,37 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
   useEffect(() => {
     let player: any;
 
-    async function initShaka() {
-      const videoElement = videoRef.current;
-      if (!videoElement || !manifestUrl) return;
+    const initShaka = async () => {
+      const video = videoRef.current;
+      if (!video || !manifestUrl || !shaka) return;
 
-      console.log("✅ manifestUrl:", manifestUrl);
-
-      const shaka = require('shaka-player/dist/shaka-player.compiled.js');
       shaka.polyfill.installAll();
 
       if (!shaka.Player.isBrowserSupported()) {
-        console.error('Shaka Player is not supported in this browser.');
+        console.error("❌ このブラウザは Shaka Player をサポートしていません");
         return;
       }
 
-      player = new shaka.Player(videoElement);
+      player = new shaka.Player(video);
 
-      // 🔒 CloudFront署名付きURLとS3プリサイン衝突対策（重要！）
       player.getNetworkingEngine().clearAllRequestFilters();
 
-      player.addEventListener('error', (event: any) => {
-        console.error('Shaka Player Error:', event.detail);
+      player.addEventListener("error", (event: any) => {
+        console.error("Shaka Player エラー:", event.detail);
       });
 
       try {
         await player.load(manifestUrl);
-        console.log('Shaka Player loaded successfully.');
-        videoElement.play().catch((err: any) => {
-          console.warn('Autoplay failed:', err);
+        console.log("✅ 再生準備完了:", manifestUrl);
+        video.play().catch((err: any) => {
+          console.warn("⚠️ 自動再生に失敗:", err);
         });
-      } catch (error) {
-        console.error('Error loading manifest:', error);
+      } catch (err) {
+        console.error("❌ マニフェスト読み込み失敗:", err);
       }
 
       setShakaLoaded(true);
-    }
+    };
 
     initShaka();
 
@@ -63,7 +65,7 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
         muted
         playsInline
         className="w-full rounded-xl shadow-md"
-        style={{ maxHeight: '70vh' }}
+        style={{ maxHeight: "70vh" }}
       />
       {!shakaLoaded && <div className="text-center py-2">Loading player...</div>}
     </div>

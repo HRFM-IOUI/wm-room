@@ -9,7 +9,6 @@ import {
 } from "firebase/firestore";
 import { getUserVipStatus } from "./vipUtils";
 
-// ✅ CloudFront署名はCloudflare Worker経由で取得する構成に変更
 const SIGNED_URL_ENDPOINT =
   "https://cf-worker-upload.ik39-10vevic.workers.dev/signed-url";
 
@@ -47,9 +46,11 @@ export const getVideoPlaybackUrl = async (
   }
 
   const videoId = parts[1];
-  const fileName = parts[2].split(".")[0];
+  const filePart = parts[2];
+  const fileName = filePart.includes(".") ? filePart.split(".")[0] : filePart;
+
   if (!fileName) {
-    throw new Error(`ファイル名抽出失敗: ${parts[2]}`);
+    throw new Error(`ファイル名抽出失敗: ${filePart}`);
   }
 
   const path =

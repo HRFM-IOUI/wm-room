@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   collection,
   query,
@@ -25,18 +25,22 @@ const Dashboard: React.FC = () => {
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  const fetchVideos = async () => {
+  const fetchVideos = useCallback(async () => {
     const user = auth.currentUser;
     if (!user) return;
 
-    const q = query(collection(db, "videos"), where("userId", "==", user.uid));
-    const querySnapshot = await getDocs(q);
-    const videoList = querySnapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data(),
-    })) as VideoData[];
-    setVideos(videoList);
-  };
+    try {
+      const q = query(collection(db, "videos"), where("userId", "==", user.uid));
+      const querySnapshot = await getDocs(q);
+      const videoList = querySnapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+      })) as VideoData[];
+      setVideos(videoList);
+    } catch (err) {
+      console.error("📛 Firestore取得失敗:", err);
+    }
+  }, []);
 
   const handleDelete = async (video: VideoData) => {
     if (!window.confirm("本当に削除しますか？")) return;
@@ -45,7 +49,7 @@ const Dashboard: React.FC = () => {
       await deleteDoc(doc(db, "videos", video.id));
       setVideos((prev) => prev.filter((v) => v.id !== video.id));
     } catch (err) {
-      console.error(err);
+      console.error("📛 削除失敗:", err);
       alert("削除に失敗しました");
     }
   };
@@ -60,17 +64,17 @@ const Dashboard: React.FC = () => {
         )
       );
     } catch (err) {
-      console.error(err);
+      console.error("📛 公開状態更新失敗:", err);
       alert("公開状態の更新に失敗しました");
     }
   };
 
   useEffect(() => {
     fetchVideos();
-  }, []);
+  }, [fetchVideos]);
 
   const filteredVideos = videos.filter((video) =>
-    video.title.toLowerCase().includes(searchTerm.toLowerCase())
+    video.title?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -105,15 +109,11 @@ const Dashboard: React.FC = () => {
   );
 };
 
-const VideoCard = ({
-  video,
-  onDelete,
-  onTogglePublic,
-}: {
+const VideoCard: React.FC<{
   video: VideoData;
   onDelete: (video: VideoData) => void;
   onTogglePublic: (video: VideoData) => void;
-}) => {
+}> = ({ video, onDelete, onTogglePublic }) => {
   const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -131,7 +131,7 @@ const VideoCard = ({
       }
     };
     fetchUrl();
-  }, [video]); // 🔥 ESLintのreact-hooks/exhaustive-deps警告を完全回避
+  }, [video.key]);
 
   return (
     <div className="p-4 border rounded-xl shadow-sm bg-white space-y-2">
