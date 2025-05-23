@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   collection,
   query,
@@ -25,31 +25,26 @@ const Dashboard: React.FC = () => {
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  const fetchVideos = useCallback(async () => {
+  const fetchVideos = async () => {
     const user = auth.currentUser;
     if (!user) return;
 
-    try {
-      const q = query(collection(db, "videos"), where("userId", "==", user.uid));
-      const querySnapshot = await getDocs(q);
-      const videoList = querySnapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data(),
-      })) as VideoData[];
-      setVideos(videoList);
-    } catch (err) {
-      console.error("📛 Firestore取得失敗:", err);
-    }
-  }, []);
+    const q = query(collection(db, "videos"), where("userId", "==", user.uid));
+    const querySnapshot = await getDocs(q);
+    const videoList = querySnapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
+    })) as VideoData[];
+    setVideos(videoList);
+  };
 
   const handleDelete = async (video: VideoData) => {
     if (!window.confirm("本当に削除しますか？")) return;
-
     try {
       await deleteDoc(doc(db, "videos", video.id));
       setVideos((prev) => prev.filter((v) => v.id !== video.id));
     } catch (err) {
-      console.error("📛 削除失敗:", err);
+      console.error(err);
       alert("削除に失敗しました");
     }
   };
@@ -64,17 +59,17 @@ const Dashboard: React.FC = () => {
         )
       );
     } catch (err) {
-      console.error("📛 公開状態更新失敗:", err);
+      console.error(err);
       alert("公開状態の更新に失敗しました");
     }
   };
 
   useEffect(() => {
     fetchVideos();
-  }, [fetchVideos]);
+  }, []);
 
   const filteredVideos = videos.filter((video) =>
-    video.title?.toLowerCase().includes(searchTerm.toLowerCase())
+    video.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -109,11 +104,15 @@ const Dashboard: React.FC = () => {
   );
 };
 
-const VideoCard: React.FC<{
+const VideoCard = ({
+  video,
+  onDelete,
+  onTogglePublic,
+}: {
   video: VideoData;
   onDelete: (video: VideoData) => void;
   onTogglePublic: (video: VideoData) => void;
-}> = ({ video, onDelete, onTogglePublic }) => {
+}) => {
   const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -130,8 +129,9 @@ const VideoCard: React.FC<{
         console.error("再生URL取得エラー:", err);
       }
     };
+
     fetchUrl();
-  }, [video.key]);
+  }, [video.key]); // 🔧 video.key 依存で明確化
 
   return (
     <div className="p-4 border rounded-xl shadow-sm bg-white space-y-2">
