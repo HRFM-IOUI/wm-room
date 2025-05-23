@@ -11,7 +11,7 @@ import { getUserVipStatus } from "./vipUtils";
 
 // ✅ CloudFront署名はCloudflare Worker経由で取得する構成に変更
 const SIGNED_URL_ENDPOINT =
-  "https://cf-worker-upload-production.ik39-10vevic.workers.dev/signed-url";
+  "https://cf-worker-upload.ik39-10vevic.workers.dev/signed-url";
 
 interface VipStatus {
   rank: string;

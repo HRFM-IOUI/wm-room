@@ -2,7 +2,7 @@ import React, { useState, ChangeEvent } from "react";
 import { registerUploadedVideo } from "../../utils/videoUtils";
 import { requestVideoConversion } from "../../utils/api";
 
-const API_BASE = "https://cf-worker-upload-production.ik39-10vevic.workers.dev";
+const API_BASE = "https://cf-worker-upload.ik39-10vevic.workers.dev";
 const PART_SIZE = 10 * 1024 * 1024;
 
 const CATEGORIES: string[] = ["その他"];
