@@ -27,7 +27,7 @@ const Login: React.FC = () => {
       await signInWithEmailAndPassword(auth, email, password);
       navigate("/toppage");
     } catch (err: any) {
-      console.error("ログインエラー:", err);
+      console.error("ログインエラーです:", err);
       setError("ログインに失敗しました: " + (err?.message || "エラーが発生しました。"));
     } finally {
       setLoading(false);
