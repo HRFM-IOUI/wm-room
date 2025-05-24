@@ -4,7 +4,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import ShakaPlayerComponent from '../../components/video/ShakaPlayerComponent';
 import DownloadButton from '../../components/video/DownloadButton';
-import { isVipUser, hasPurchasedVideo, getVideoPlaybackUrl } from '../../utils/videoUtils';
+import { isVipUser, hasPurchasedVideo } from '../../utils/videoUtils';
 
 interface VideoData {
   id: string;
@@ -20,7 +20,6 @@ const VideoDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [accessGranted, setAccessGranted] = useState(false);
   const [userStatus, setUserStatus] = useState({ isVip: false, hasPurchased: false });
-  const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchVideo = async () => {
@@ -61,16 +60,6 @@ const VideoDetail: React.FC = () => {
             (data.type === 'dmode' && purchased);
 
           setAccessGranted(canAccess);
-
-          if (canAccess) {
-            if (!data.key) {
-              console.warn("⚠️ video.key が未定義のため再生不可", data);
-              setAccessGranted(false);
-              return;
-            }
-            const signedUrl = await getVideoPlaybackUrl(data.key, 'hls');
-            setPlaybackUrl(signedUrl);
-          }
         }
       } catch (err) {
         console.error('🔥 動画取得エラー:', err);
@@ -85,13 +74,17 @@ const VideoDetail: React.FC = () => {
   if (loading) return <p className="p-4">読み込み中...</p>;
   if (!video) return <p className="p-4 text-red-500">動画が見つかりませんでした。</p>;
 
+  // CloudFront 再生パスを組み立て
+  const pathParts = video.key.replace(/^videos\//, "").replace(/\.[^/.]+$/, "");
+  const cloudfrontPath = `converted/${pathParts}/playlist.m3u8`;
+
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <h1 className="text-xl font-bold mb-4">{video.title}</h1>
 
-      {accessGranted && playbackUrl ? (
+      {accessGranted ? (
         <>
-          <ShakaPlayerComponent manifestUrl={playbackUrl} />
+          <ShakaPlayerComponent manifestUrl={cloudfrontPath} />
           <DownloadButton video={video} />
         </>
       ) : (
@@ -125,10 +118,6 @@ const VideoDetail: React.FC = () => {
 
           {video.type === 'sample' && (
             <p>この動画は無料会員登録後に再生できます。</p>
-          )}
-
-          {!playbackUrl && (
-            <p className="text-sm text-red-500">⚠️ 動画の再生URLが取得できませんでした。</p>
           )}
         </div>
       )}
