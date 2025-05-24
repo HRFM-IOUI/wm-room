@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
-// ShakaPlayer を直接 import しないことで TS2306 を完全回避
+// ShakaPlayer を直接 import しないことで TS2306 を回避
 let shaka: any;
 if (typeof window !== "undefined") {
   shaka = require("shaka-player/dist/shaka-player.compiled.js");
@@ -30,7 +30,15 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
 
       player = new shaka.Player(video);
 
-      player.getNetworkingEngine().clearAllRequestFilters();
+      // 不要な Authorization ヘッダーを除去
+      player.getNetworkingEngine().registerRequestFilter((type: any, request: any) => {
+        if (request.headers) {
+          delete request.headers['Authorization'];
+          delete request.headers['x-amz-security-token'];
+          delete request.headers['x-amz-date'];
+          delete request.headers['x-amz-content-sha256'];
+        }
+      });
 
       player.addEventListener("error", (event: any) => {
         console.error("Shaka Player エラー:", event.detail);
