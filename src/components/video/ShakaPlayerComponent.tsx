@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 
-// Shaka Player を動的 import して TS エラー回避
 let shaka: any;
 if (typeof window !== "undefined") {
   shaka = require("shaka-player/dist/shaka-player.compiled.js");
@@ -30,23 +29,27 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
 
       player = new shaka.Player(video);
 
-      // すべての既存リクエストフィルターをクリア
-      player.getNetworkingEngine().clearAllRequestFilters();
+      const netEngine = player.getNetworkingEngine();
+      netEngine.clearAllRequestFilters();
 
-      // Authorization ヘッダーを強制的に除外するフィルターを追加
-      player.getNetworkingEngine().registerRequestFilter((type: any, request: any) => {
+      netEngine.registerRequestFilter((type: any, request: any) => {
         if (
           type === shaka.net.NetworkingEngine.RequestType.MANIFEST ||
           type === shaka.net.NetworkingEngine.RequestType.SEGMENT
         ) {
-          if (request.headers && request.headers['Authorization']) {
-            console.log("⚠️ Authorization ヘッダーを削除しました");
+          if (request.headers) {
+            // AWS 系ヘッダーを完全除去
             delete request.headers['Authorization'];
+            delete request.headers['x-amz-date'];
+            delete request.headers['x-amz-security-token'];
+            delete request.headers['x-amz-content-sha256'];
+            delete request.headers['x-amz-source-account'];
+            delete request.headers['x-amz-source-arn'];
+            console.log("✅ CloudFront用ヘッダーのみ適用 (AWS署名ヘッダー除去)");
           }
         }
       });
 
-      // エラーイベントリスナー
       player.addEventListener("error", (event: any) => {
         console.error("Shaka Player エラー:", event.detail);
       });
