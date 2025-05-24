@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
-// ShakaPlayer を直接 import しないことで TS2306 を回避
+// Shaka Player を動的 import して TS エラー回避
 let shaka: any;
 if (typeof window !== "undefined") {
   shaka = require("shaka-player/dist/shaka-player.compiled.js");
@@ -30,23 +30,30 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
 
       player = new shaka.Player(video);
 
-      // 不要な Authorization ヘッダーを除去
+      // すべての既存リクエストフィルターをクリア
+      player.getNetworkingEngine().clearAllRequestFilters();
+
+      // Authorization ヘッダーを強制的に除外するフィルターを追加
       player.getNetworkingEngine().registerRequestFilter((type: any, request: any) => {
-        if (request.headers) {
-          delete request.headers['Authorization'];
-          delete request.headers['x-amz-security-token'];
-          delete request.headers['x-amz-date'];
-          delete request.headers['x-amz-content-sha256'];
+        if (
+          type === shaka.net.NetworkingEngine.RequestType.MANIFEST ||
+          type === shaka.net.NetworkingEngine.RequestType.SEGMENT
+        ) {
+          if (request.headers && request.headers['Authorization']) {
+            console.log("⚠️ Authorization ヘッダーを削除しました");
+            delete request.headers['Authorization'];
+          }
         }
       });
 
+      // エラーイベントリスナー
       player.addEventListener("error", (event: any) => {
         console.error("Shaka Player エラー:", event.detail);
       });
 
       try {
         await player.load(manifestUrl);
-        console.log("✅ 再生準備完了:", manifestUrl);
+        console.log("✅ Shaka Player: マニフェスト読み込み成功:", manifestUrl);
         video.play().catch((err: any) => {
           console.warn("⚠️ 自動再生に失敗:", err);
         });
