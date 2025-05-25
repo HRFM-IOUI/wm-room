@@ -33,26 +33,27 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
       netEngine.clearAllRequestFilters();
 
       netEngine.registerRequestFilter((type: any, request: any) => {
+  if (
+    type === shaka.net.NetworkingEngine.RequestType.MANIFEST ||
+    type === shaka.net.NetworkingEngine.RequestType.SEGMENT
+  ) {
+    // すべてのAWS認証系ヘッダーを削除
+    if (request.headers) {
+      for (const key of Object.keys(request.headers)) {
+        const lower = key.toLowerCase();
         if (
-          type === shaka.net.NetworkingEngine.RequestType.MANIFEST ||
-          type === shaka.net.NetworkingEngine.RequestType.SEGMENT
+          lower.startsWith("authorization") ||
+          lower.startsWith("x-amz") ||
+          lower.includes("token") ||
+          lower.includes("aws")
         ) {
-          console.log("👉 リクエストURL:", request.uris[0]);
-          console.log("👉 送信前ヘッダー:", request.headers);
-
-          if (request.headers) {
-            Object.keys(request.headers).forEach((key) => {
-              if (
-                key.toLowerCase().startsWith("authorization") ||
-                key.toLowerCase().startsWith("x-amz")
-              ) {
-                delete request.headers[key];
-              }
-            });
-            console.log("✅ AWS関連ヘッダー除去後:", request.headers);
-          }
+          delete request.headers[key];
         }
-      });
+      }
+    }
+  }
+});
+
 
       player.addEventListener("error", (event: any) => {
         console.error("Shaka Player エラー:", event.detail);
