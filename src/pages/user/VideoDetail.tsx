@@ -19,6 +19,7 @@ const VideoDetail: React.FC = () => {
   const [video, setVideo] = useState<VideoData | null>(null);
   const [loading, setLoading] = useState(true);
   const [accessGranted, setAccessGranted] = useState(false);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [userStatus, setUserStatus] = useState({ isVip: false, hasPurchased: false });
 
   useEffect(() => {
@@ -71,12 +72,36 @@ const VideoDetail: React.FC = () => {
     fetchVideo();
   }, [id]);
 
+  useEffect(() => {
+    const fetchSignedUrl = async () => {
+      if (!video) return;
+
+      const pathParts = video.key.replace(/^videos\//, "").replace(/\.[^/.]+$/, "");
+      const cloudfrontPath = `converted/${pathParts}/playlist.m3u8`;
+
+      try {
+        const response = await fetch("https://cf-worker-upload.ik39-10vevic.workers.dev/signed-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: cloudfrontPath }),
+        });
+
+        if (!response.ok) throw new Error("Failed to get signed URL");
+        const data = await response.json();
+        setSignedUrl(data.signedUrl);
+        console.log("✅ 署名付きURL取得成功:", data.signedUrl);
+      } catch (error) {
+        console.error("❌ 署名付きURL取得失敗:", error);
+      }
+    };
+
+    if (accessGranted) {
+      fetchSignedUrl();
+    }
+  }, [video, accessGranted]);
+
   if (loading) return <p className="p-4">読み込み中...</p>;
   if (!video) return <p className="p-4 text-red-500">動画が見つかりませんでした。</p>;
-
-  // CloudFront 再生パスを組み立て
-  const pathParts = video.key.replace(/^videos\//, "").replace(/\.[^/.]+$/, "");
-  const cloudfrontPath = `converted/${pathParts}/playlist.m3u8`;
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -84,8 +109,14 @@ const VideoDetail: React.FC = () => {
 
       {accessGranted ? (
         <>
-          <ShakaPlayerComponent manifestUrl={cloudfrontPath} />
-          <DownloadButton video={video} />
+          {signedUrl ? (
+            <>
+              <ShakaPlayerComponent manifestUrl={signedUrl} />
+              <DownloadButton video={video} />
+            </>
+          ) : (
+            <p>署名付きURLを取得中...</p>
+          )}
         </>
       ) : (
         <div className="bg-red-50 text-red-700 p-4 rounded space-y-4">

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
+// ShakaPlayer を直接 import しないことで TS2306 を回避
 let shaka: any;
 if (typeof window !== "undefined") {
   shaka = require("shaka-player/dist/shaka-player.compiled.js");
@@ -29,34 +30,14 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
 
       player = new shaka.Player(video);
 
-      const netEngine = player.getNetworkingEngine();
-      netEngine.clearAllRequestFilters();
-
-      netEngine.registerRequestFilter((type: any, request: any) => {
-        if (
-          type === shaka.net.NetworkingEngine.RequestType.MANIFEST ||
-          type === shaka.net.NetworkingEngine.RequestType.SEGMENT
-        ) {
-          if (request.headers) {
-            // AWS 系ヘッダーを完全除去
-            delete request.headers['Authorization'];
-            delete request.headers['x-amz-date'];
-            delete request.headers['x-amz-security-token'];
-            delete request.headers['x-amz-content-sha256'];
-            delete request.headers['x-amz-source-account'];
-            delete request.headers['x-amz-source-arn'];
-            console.log("✅ CloudFront用ヘッダーのみ適用 (AWS署名ヘッダー除去)");
-          }
-        }
-      });
-
       player.addEventListener("error", (event: any) => {
         console.error("Shaka Player エラー:", event.detail);
       });
 
       try {
+        console.log("⏩ Shaka loading manifest URL:", manifestUrl);
         await player.load(manifestUrl);
-        console.log("✅ Shaka Player: マニフェスト読み込み成功:", manifestUrl);
+        console.log("✅ Shaka load success");
         video.play().catch((err: any) => {
           console.warn("⚠️ 自動再生に失敗:", err);
         });
@@ -82,10 +63,13 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
         autoPlay
         muted
         playsInline
+        crossOrigin="anonymous"
         className="w-full rounded-xl shadow-md"
         style={{ maxHeight: "70vh" }}
       />
-      {!shakaLoaded && <div className="text-center py-2">Loading player...</div>}
+      {!shakaLoaded && (
+        <div className="text-center py-2">Loading player...</div>
+      )}
     </div>
   );
 };
