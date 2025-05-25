@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import ShakaPlayerComponent from '../../components/video/ShakaPlayerComponent';
@@ -19,8 +19,6 @@ const VideoDetail: React.FC = () => {
   const [video, setVideo] = useState<VideoData | null>(null);
   const [loading, setLoading] = useState(true);
   const [accessGranted, setAccessGranted] = useState(false);
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [userStatus, setUserStatus] = useState({ isVip: false, hasPurchased: false });
 
   useEffect(() => {
     const fetchVideo = async () => {
@@ -53,7 +51,6 @@ const VideoDetail: React.FC = () => {
             isVipUser(),
             hasPurchasedVideo(data.id),
           ]);
-          setUserStatus({ isVip: vip, hasPurchased: purchased });
 
           const canAccess =
             data.type === 'sample' ||
@@ -62,23 +59,6 @@ const VideoDetail: React.FC = () => {
 
           setAccessGranted(canAccess);
         }
-
-        if (accessGranted) {
-          const pathParts = data.key.replace(/^videos\//, "").replace(/\.[^/.]+$/, "");
-          const apiRes = await fetch("https://cf-worker-upload.ik39-10vevic.workers.dev/signed-url", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ path: `converted/${pathParts}/playlist.m3u8` }),
-          });
-
-          const apiData = await apiRes.json();
-          if (apiData.signedUrl) {
-            setSignedUrl(apiData.signedUrl);
-          } else {
-            console.error("❌ 署名付きURLの取得に失敗:", apiData);
-          }
-        }
-
       } catch (err) {
         console.error('🔥 動画取得エラー:', err);
       } finally {
@@ -87,10 +67,14 @@ const VideoDetail: React.FC = () => {
     };
 
     fetchVideo();
-  }, [id, accessGranted]);
+  }, [id]);
 
   if (loading) return <p className="p-4">読み込み中...</p>;
   if (!video) return <p className="p-4 text-red-500">動画が見つかりませんでした。</p>;
+
+  // CloudFront 再生パスを組み立て
+  const pathParts = video.key.replace(/^videos\//, "").replace(/\.[^/.]+$/, "");
+  const cloudfrontPath = `converted/${pathParts}/playlist.m3u8`;
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -98,16 +82,12 @@ const VideoDetail: React.FC = () => {
 
       {accessGranted ? (
         <>
-          {signedUrl ? (
-            <ShakaPlayerComponent manifestUrl={signedUrl} />
-          ) : (
-            <p className="text-center">署名付きURLを取得中...</p>
-          )}
+          <ShakaPlayerComponent manifestUrl={cloudfrontPath} />
           <DownloadButton video={video} />
         </>
       ) : (
         <div className="bg-red-50 text-red-700 p-4 rounded space-y-4">
-          {/* 以下省略、既存の accessDenied 表示ロジックそのまま */}
+          <p className="mb-2">この動画の再生には適切な権限が必要です。</p>
         </div>
       )}
     </div>
