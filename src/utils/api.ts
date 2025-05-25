@@ -5,7 +5,7 @@
  */
 export const requestVideoConversion = async (key: string): Promise<string> => {
   const res = await fetch(
-    "https://cf-worker-upload-production.ik39-10vevic.workers.dev/convert-video",
+    "https://cf-worker-upload.ik39-10vevic.workers.dev/convert-video",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
