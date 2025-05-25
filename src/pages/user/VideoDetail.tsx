@@ -56,8 +56,14 @@ const VideoDetail: React.FC = () => {
         setAccessGranted(canAccess);
 
         if (canAccess) {
-          const pathParts = data.key.replace(/^videos\//, "").replace(/\.[^/.]+$/, "");
-          const playbackPath = `converted/${pathParts}/playlist.m3u8`;
+          // Firestoreのkey例: videos/7d8fdc42-c447-46a9-a525-22da13958354/IMG_8552.MOV
+          const key = data.key;
+          const parts = key.split("/");
+          const videoId = parts[1];
+          const filePart = parts[2];
+          const fileBaseName = filePart.replace(/\.[^/.]+$/, "");
+          const playlistFileName = `${fileBaseName}playlist.m3u8`;
+          const playbackPath = `converted/${videoId}/${fileBaseName}/${playlistFileName}`;
 
           const response = await fetch(`${process.env.REACT_APP_WORKER_URL}/signed-url`, {
             method: 'POST',

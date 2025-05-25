@@ -40,22 +40,21 @@ export const getVideoPlaybackUrl = async (
     throw new Error("video key が未指定、または形式不正です");
   }
 
-  const parts = key.split("/"); // 期待形式: videos/{videoId}/{filename}
+  // 例: videos/7d8fdc42-c447-46a9-a525-22da13958354/IMG_8552.MOV
+  const parts = key.split("/");
   if (parts.length < 3 || !parts[1] || !parts[2]) {
     throw new Error(`不正な動画キー形式: ${key}`);
   }
 
   const videoId = parts[1];
-  const filePart = parts[2];
-  const fileName = filePart.includes(".") ? filePart.split(".")[0] : filePart;
+  const filePart = parts[2]; // 例: IMG_8552.MOV
+  const fileBaseName = filePart.replace(/\.[^/.]+$/, ""); // 拡張子除去 → IMG_8552
+  const playlistFileName = `${fileBaseName}playlist.m3u8`;
 
-  if (!fileName) {
-    throw new Error(`ファイル名抽出失敗: ${filePart}`);
-  }
-
+  // 例: converted/7d8fdc42-c447-46a9-a525-22da13958354/IMG_8552/IMG_8552playlist.m3u8
   const path =
     format === "hls"
-      ? `converted/${videoId}/${fileName}/playlist.m3u8`
+      ? `converted/${videoId}/${fileBaseName}/${playlistFileName}`
       : key;
 
   try {
