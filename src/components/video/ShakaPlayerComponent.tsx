@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 
-// ShakaPlayer を直接 import しないことで TS2306 を回避
 let shaka: any;
 if (typeof window !== "undefined") {
   shaka = require("shaka-player/dist/shaka-player.compiled.js");
@@ -30,14 +29,38 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
 
       player = new shaka.Player(video);
 
+      const netEngine = player.getNetworkingEngine();
+      netEngine.clearAllRequestFilters();
+
+      netEngine.registerRequestFilter((type: any, request: any) => {
+        if (
+          type === shaka.net.NetworkingEngine.RequestType.MANIFEST ||
+          type === shaka.net.NetworkingEngine.RequestType.SEGMENT
+        ) {
+          console.log("👉 リクエストURL:", request.uris[0]);
+          console.log("👉 送信前ヘッダー:", request.headers);
+
+          if (request.headers) {
+            Object.keys(request.headers).forEach((key) => {
+              if (
+                key.toLowerCase().startsWith("authorization") ||
+                key.toLowerCase().startsWith("x-amz")
+              ) {
+                delete request.headers[key];
+              }
+            });
+            console.log("✅ AWS関連ヘッダー除去後:", request.headers);
+          }
+        }
+      });
+
       player.addEventListener("error", (event: any) => {
         console.error("Shaka Player エラー:", event.detail);
       });
 
       try {
-        console.log("⏩ Shaka loading manifest URL:", manifestUrl);
         await player.load(manifestUrl);
-        console.log("✅ Shaka load success");
+        console.log("✅ Shaka Player: マニフェスト読み込み成功:", manifestUrl);
         video.play().catch((err: any) => {
           console.warn("⚠️ 自動再生に失敗:", err);
         });
@@ -63,7 +86,6 @@ const ShakaPlayerComponent: React.FC<ShakaPlayerProps> = ({ manifestUrl }) => {
         autoPlay
         muted
         playsInline
-        crossOrigin="anonymous"
         className="w-full rounded-xl shadow-md"
         style={{ maxHeight: "70vh" }}
       />
